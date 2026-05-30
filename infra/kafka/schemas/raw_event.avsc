@@ -1,0 +1,33 @@
+{
+  "type": "record",
+  "name": "RawEvent",
+  "namespace": "com.anomalydetection",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "source_id",
+      "type": "string"
+    },
+    {
+      "name": "event_type",
+      "type": "string"
+    },
+    {
+      "name": "features",
+      "type": {
+        "type": "map",
+        "values": "double"
+      }
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

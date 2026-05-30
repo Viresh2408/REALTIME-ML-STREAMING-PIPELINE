@@ -1,0 +1,47 @@
+{
+  "type": "record",
+  "name": "AlertEvent",
+  "namespace": "com.anomalydetection",
+  "fields": [
+    {
+      "name": "alert_id",
+      "type": "string"
+    },
+    {
+      "name": "severity",
+      "type": {
+        "type": "enum",
+        "name": "SeverityLevel",
+        "symbols": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ]
+      }
+    },
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "score",
+      "type": "double"
+    },
+    {
+      "name": "source_id",
+      "type": "string"
+    },
+    {
+      "name": "created_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "acknowledged",
+      "type": "boolean"
+    }
+  ]
+}

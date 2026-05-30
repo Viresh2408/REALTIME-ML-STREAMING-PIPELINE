@@ -1,0 +1,52 @@
+{
+  "type": "record",
+  "name": "ScoredEvent",
+  "namespace": "com.anomalydetection",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "source_id",
+      "type": "string"
+    },
+    {
+      "name": "event_type",
+      "type": "string"
+    },
+    {
+      "name": "features",
+      "type": {
+        "type": "map",
+        "values": "double"
+      }
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "anomaly_score",
+      "type": "double"
+    },
+    {
+      "name": "is_anomaly",
+      "type": "boolean"
+    },
+    {
+      "name": "model_version",
+      "type": "string"
+    },
+    {
+      "name": "processed_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

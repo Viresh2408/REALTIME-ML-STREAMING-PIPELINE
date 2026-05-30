@@ -1,0 +1,554 @@
+# ============================================================
+# Real-Time Anomaly Detection System — docker-compose.yml
+# Services: zookeeper, kafka, schema-registry, timescaledb,
+#           fastapi-backend, ml-inference-worker, grafana,
+#           prometheus, kafka-ui
+# Versions sourced from techstack.docx
+# ============================================================
+
+version: "3.9"
+
+networks:
+  anomaly-net:
+    driver: bridge
+
+volumes:
+  zookeeper-data:
+  zookeeper-log:
+  kafka-data:
+  timescaledb-data:
+  grafana-data:
+  prometheus-data:
+  loki-data:
+  redis-data:
+  minio-data:
+  mlflow-data:
+
+services:
+
+  # ─────────────────────────────────────────────
+  # 1. ZOOKEEPER — Kafka coordination (v3.8)
+  # ─────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVER_ID: 1
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok,stat,mntr"
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ─────────────────────────────────────────────
+  # 2. KAFKA — Broker v3.7 (Confluent 7.6)
+  # ─────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # JMX for Prometheus scraping
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+      - "9999:9999"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────────────────────────────────────
+  # 3. SCHEMA-REGISTRY — Confluent 7.6
+  # ─────────────────────────────────────────────
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: schema-registry
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka:29092"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+      SCHEMA_REGISTRY_DEBUG: "false"
+    ports:
+      - "8081:8081"
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/subjects || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ─────────────────────────────────────────────
+  # 4. TIMESCALEDB — 2.15 on PostgreSQL 16
+  # ─────────────────────────────────────────────
+  timescaledb:
+    image: timescale/timescaledb:2.15.3-pg16
+    container_name: timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TIMESCALE_DB:-anomaly_db}
+      POSTGRES_USER: ${TIMESCALE_USER:-anomaly_admin}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:?TimescaleDB password is required}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.utf8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+      - ./infra/timescaledb/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER:-anomaly_admin} -d ${TIMESCALE_DB:-anomaly_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ─────────────────────────────────────────────
+  # 5. FASTAPI-BACKEND — REST + WebSocket (port 8000)
+  # ─────────────────────────────────────────────
+  fastapi-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fastapi-backend
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: "postgresql+asyncpg://${TIMESCALE_USER:-anomaly_admin}:${TIMESCALE_PASSWORD}@timescaledb:5432/${TIMESCALE_DB:-anomaly_db}"
+      TIMESCALE_PASSWORD: ${TIMESCALE_PASSWORD}
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      # Redis
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
+      # Auth / JWT
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT secret key is required}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      # App
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ANOMALY_SCORE_THRESHOLD: ${ANOMALY_SCORE_THRESHOLD:-0.7}
+      # LangGraph / LLM
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Anthropic API key is required}
+      # MLflow
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app:ro
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────────
+  # 6. ML-INFERENCE-WORKER — Python consumer
+  # ─────────────────────────────────────────────
+  ml-inference-worker:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: ml-inference-worker
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KAFKA_CONSUMER_GROUP_ID: ${KAFKA_CONSUMER_GROUP_ID:-ml-inference-group}
+      KAFKA_RAW_EVENTS_TOPIC: ${KAFKA_RAW_EVENTS_TOPIC:-raw-events}
+      KAFKA_SCORED_EVENTS_TOPIC: ${KAFKA_SCORED_EVENTS_TOPIC:-scored-events}
+      KAFKA_AUTO_OFFSET_RESET: ${KAFKA_AUTO_OFFSET_RESET:-earliest}
+      # Database
+      DATABASE_URL: "postgresql+asyncpg://${TIMESCALE_WORKER_USER:-anomaly_worker}:${TIMESCALE_WORKER_PASSWORD}@timescaledb:5432/${TIMESCALE_DB:-anomaly_db}"
+      # ML
+      ANOMALY_SCORE_THRESHOLD: ${ANOMALY_SCORE_THRESHOLD:-0.7}
+      MODEL_ARTIFACT_PATH: ${MODEL_ARTIFACT_PATH:-/app/artifacts}
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      # MinIO
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MinIO access key is required}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MinIO secret key is required}
+      MINIO_BUCKET_MODELS: ${MINIO_BUCKET_MODELS:-ml-models}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./ml:/app/ml:ro
+      - ./ml/artifacts:/app/ml/artifacts
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys; sys.exit(0)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ─────────────────────────────────────────────
+  # 7. GRAFANA — Dashboard v10.4 (port 3000)
+  # ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Grafana admin password is required}
+      GF_SERVER_HTTP_PORT: 3000
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+      GF_FEATURE_TOGGLES_ENABLE: "live"
+      GF_DATABASE_URL: ""
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      # TimescaleDB datasource credentials
+      TIMESCALE_GRAFANA_USER: ${TIMESCALE_GRAFANA_USER:-grafana_reader}
+      TIMESCALE_GRAFANA_PASSWORD: ${TIMESCALE_GRAFANA_PASSWORD:?Grafana TimescaleDB password is required}
+      TIMESCALE_DB: ${TIMESCALE_DB:-anomaly_db}
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─────────────────────────────────────────────
+  # 8. PROMETHEUS — Metrics v2.52 (port 9090)
+  # ─────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────────
+  # 9. KAFKA-UI — Cluster UI v0.7 (port 8080)
+  # ─────────────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "anomaly-cluster"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:29092"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181"
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "http://schema-registry:8081"
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9999
+      DYNAMIC_CONFIG_ENABLED: "true"
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USER:-admin}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD:?Kafka UI password is required}
+    ports:
+      - "8080:8080"
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────────
+  # 10. REDIS — Cache + Rate Limiting v7.2
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?Redis password is required}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────────
+  # 11. MINIO — ML Artifact Storage
+  # ─────────────────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MinIO access key is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MinIO secret key is required}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────────
+  # 12. LOKI — Log Aggregation v3.0
+  # ─────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+      - ./infra/loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ─────────────────────────────────────────────
+  # 13. MLFLOW — Experiment Tracking v2.13
+  # ─────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.0
+    container_name: mlflow
+    restart: unless-stopped
+    command: >
+      bash -c "pip install --no-cache-dir psycopg2-binary &&
+      mlflow server
+      --backend-store-uri postgresql://${TIMESCALE_USER:-anomaly_admin}:${TIMESCALE_PASSWORD}@timescaledb:5432/${TIMESCALE_DB:-anomaly_db}
+      --default-artifact-root s3://${MINIO_BUCKET_MODELS:-ml-models}
+      --host 0.0.0.0
+      --port 5000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: "http://minio:9000"
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
+    ports:
+      - "5000:5000"
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────────
+  # 14. MCP SERVER - ANOMALY DETECTION
+  # ─────────────────────────────────────────────
+  mcp-anomaly-server:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    container_name: mcp-anomaly-server
+    restart: unless-stopped
+    command: ["uvicorn", "anomaly_detection_server:app", "--host", "0.0.0.0", "--port", "8001"]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://${TIMESCALE_USER:-anomaly_admin}:${TIMESCALE_PASSWORD}@timescaledb:5432/${TIMESCALE_DB:-anomaly_db}"
+    ports:
+      - "8001:8001"
+    networks:
+      - anomaly-net
+
+  # ─────────────────────────────────────────────
+  # 15. MCP SERVER - MODEL MANAGEMENT
+  # ─────────────────────────────────────────────
+  mcp-model-server:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    container_name: mcp-model-server
+    restart: unless-stopped
+    command: ["uvicorn", "model_management_server:app", "--host", "0.0.0.0", "--port", "8002"]
+    depends_on:
+      fastapi-backend:
+        condition: service_healthy
+    environment:
+      BACKEND_API_URL: "http://fastapi-backend:8000/api/v1"
+    ports:
+      - "8002:8002"
+    networks:
+      - anomaly-net
+
+  # ─────────────────────────────────────────────
+  # 16. MCP SERVER - KAFKA OPS
+  # ─────────────────────────────────────────────
+  mcp-kafka-server:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    container_name: mcp-kafka-server
+    restart: unless-stopped
+    command: ["uvicorn", "kafka_ops_server:app", "--host", "0.0.0.0", "--port", "8003"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_RAW_EVENTS_TOPIC: "raw-events"
+    ports:
+      - "8003:8003"
+    networks:
+      - anomaly-net
+
+  # ─────────────────────────────────────────────
+  # 17. MCP SERVER - GRAFANA
+  # ─────────────────────────────────────────────
+  mcp-grafana-server:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    container_name: mcp-grafana-server
+    restart: unless-stopped
+    command: ["uvicorn", "grafana_server:app", "--host", "0.0.0.0", "--port", "8004"]
+    depends_on:
+      grafana:
+        condition: service_healthy
+    environment:
+      GRAFANA_URL: "http://grafana:3000"
+      GRAFANA_API_KEY: ${GRAFANA_API_KEY:-}
+    ports:
+      - "8004:8004"
+    networks:
+      - anomaly-net
+
+  # ─────────────────────────────────────────────
+  # 18. MCP SERVER - REGISTRY
+  # ─────────────────────────────────────────────
+  mcp-registry:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    container_name: mcp-registry
+    restart: unless-stopped
+    command: ["uvicorn", "server_registry:app", "--host", "0.0.0.0", "--port", "8005"]
+    ports:
+      - "8005:8005"
+    networks:
+      - anomaly-net

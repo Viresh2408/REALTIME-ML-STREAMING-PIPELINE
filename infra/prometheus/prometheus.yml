@@ -1,0 +1,45 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: "development"
+    project: "anomaly-detection"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # FastAPI backend /metrics endpoint
+  - job_name: "fastapi-backend"
+    static_configs:
+      - targets: ["fastapi-backend:8000"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # ML Inference Worker
+  - job_name: "ml-inference-worker"
+    static_configs:
+      - targets: ["ml-inference-worker:8090"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Kafka JMX Exporter (via port 9999)
+  - job_name: "kafka"
+    static_configs:
+      - targets: ["kafka:9999"]
+    scrape_interval: 30s
+
+  # TimescaleDB via postgres_exporter (if deployed)
+  - job_name: "timescaledb"
+    static_configs:
+      - targets: ["timescaledb:9187"]
+    scrape_interval: 30s

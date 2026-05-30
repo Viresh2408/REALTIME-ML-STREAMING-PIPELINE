@@ -1,0 +1,187 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "anomaly-detection-system"
+version = "0.1.0"
+description = "Real-Time Anomaly Detection & Recommendation System — ML Streaming Pipeline"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [
+    { name = "Anomaly Detection Team" }
+]
+keywords = ["anomaly-detection", "kafka", "fastapi", "langgraph", "timescaledb", "ml-streaming"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Core runtime dependencies
+# Versions pinned from techstack.docx sections 2 (Backend & API),
+# 3 (Machine Learning), and 6 (Agent Framework)
+# ─────────────────────────────────────────────────────────────────────────────
+dependencies = [
+    # ── Section 2: Backend & API ──────────────────────────────────────────────
+    "fastapi==0.111.0",
+    "pydantic==2.7.1",
+    "pydantic-settings==2.2.1",
+    "confluent-kafka==2.4.0",
+    "sqlalchemy[asyncio]==2.0.30",
+    "asyncpg==0.29.0",
+    "uvicorn[standard]==0.29.0",
+    "gunicorn==22.0.0",
+    # HTTP client for internal service calls
+    "httpx==0.27.0",
+    # WebSocket support
+    "websockets==12.0",
+    # Auth / JWT
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "python-multipart==0.0.9",
+    # Redis client
+    "redis[hiredis]==5.0.4",
+    # Avro / Schema Registry
+    "fastavro==1.9.4",
+    "confluent-kafka[avro,schemaregistry]==2.4.0",
+
+    # ── Section 3: Machine Learning ───────────────────────────────────────────
+    "scikit-learn==1.5.0",
+    "torch==2.3.0",
+    "numpy==1.26.4",
+    "pandas==2.2.2",
+    "river==0.21.2",
+    "mlflow==2.13.0",
+    "joblib==1.4.2",
+    # MinIO / S3 client for artifact storage
+    "boto3==1.34.101",
+    "minio==7.2.7",
+
+    # ── Section 6: Agent Framework ────────────────────────────────────────────
+    "langgraph==0.1.19",
+    "langchain==0.2.1",
+    "langchain-anthropic==0.1.11",
+    "anthropic==0.26.0",
+    "apscheduler==3.10.4",
+
+    # ── Supporting utilities ──────────────────────────────────────────────────
+    "python-dotenv==1.0.1",
+    "structlog==24.2.0",
+    "tenacity==8.3.0",
+    "orjson==3.10.3",
+    "prometheus-client==0.20.0",
+    "opentelemetry-api==1.24.0",
+    "opentelemetry-sdk==1.24.0",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional / extras
+# ─────────────────────────────────────────────────────────────────────────────
+[project.optional-dependencies]
+
+# Development & CI (Section 7 of techstack.docx)
+dev = [
+    "pytest==8.2.0",
+    "pytest-asyncio==0.23.7",
+    "pytest-cov==5.0.0",
+    "testcontainers==0.12.0",
+    "httpx==0.27.0",       # async test client for FastAPI
+    "faker==25.2.0",
+    "factory-boy==3.3.0",
+    "pre-commit==3.7.1",
+    "ruff==0.4.5",
+    "mypy==1.10.0",
+    "types-redis==4.6.0.20240425",
+    "ipython==8.24.0",
+    "locust==2.28.0",
+]
+
+# Load testing only
+load = [
+    "locust==2.28.0",
+]
+
+# GPU support (optional for autoencoder training)
+gpu = [
+    "torch==2.3.0+cu121",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend", "agents", "ml"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "-v",
+    "--cov=backend",
+    "--cov=agents",
+    "--cov=ml",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-fail-under=70",
+]
+markers = [
+    "unit: fast, isolated unit tests",
+    "integration: tests requiring running services (Kafka, TimescaleDB)",
+    "load: Locust load/stress tests",
+    "slow: tests taking more than 5 seconds",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit (security)
+    "T20", # flake8-print
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "ANN101",  # missing type annotation for self
+    "ANN102",  # missing type annotation for cls
+    "S101",    # use of assert in tests
+]
+
+[tool.ruff.per-file-ignores]
+"tests/**" = ["ANN", "S", "T20"]
+"**/migrations/**" = ["E501"]
+
+[tool.ruff.isort]
+known-first-party = ["backend", "agents", "ml"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+exclude = ["tests/", "migrations/"]
+
+[tool.coverage.run]
+source = ["backend", "agents", "ml"]
+omit = ["*/tests/*", "*/migrations/*", "*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 2

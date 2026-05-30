@@ -1,0 +1,83 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ── Virtual environments ───────────────────────────────────────
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ── Testing ────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# ── Type checking ──────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ── Ruff ──────────────────────────────────────────────────────
+.ruff_cache/
+
+# ── ML artifacts ──────────────────────────────────────────────
+ml/artifacts/*.joblib
+ml/artifacts/*.pkl
+ml/artifacts/*.pt
+ml/artifacts/*.pth
+ml/artifacts/model_version.txt
+mlruns/
+
+# ── Docker ────────────────────────────────────────────────────
+.docker/
+
+# ── Secrets — NEVER commit these ──────────────────────────────
+.env
+*.env
+!.env.example
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Logs & local debug dumps ──────────────────────────────────
+*.log
+logs/
+tdb_logs.txt
+
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints
+*.ipynb

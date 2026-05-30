@@ -1,0 +1,171 @@
+-- ============================================================
+-- TimescaleDB Initialization Script
+-- Real-Time Anomaly Detection System
+-- Architecture: Section 6 — Database Schema
+-- ============================================================
+
+-- Enable TimescaleDB extension
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+
+-- ─────────────────────────────────────────────────────────────
+-- Roles (Security — architecture.docx Section 8)
+-- ─────────────────────────────────────────────────────────────
+
+-- Worker user: write-only access for ML inference consumer
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anomaly_worker') THEN
+        CREATE ROLE anomaly_worker WITH LOGIN PASSWORD 'WorkerPass123!';
+    END IF;
+END
+$$;
+
+-- Grafana user: read-only access for dashboard queries
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'grafana_reader') THEN
+        CREATE ROLE grafana_reader WITH LOGIN PASSWORD 'GrafanaPass123!';
+    END IF;
+END
+$$;
+
+-- ─────────────────────────────────────────────────────────────
+-- Schema
+-- ─────────────────────────────────────────────────────────────
+CREATE SCHEMA IF NOT EXISTS anomaly;
+
+-- ─────────────────────────────────────────────────────────────
+-- Table: anomaly_events (architecture.docx Section 6)
+-- Hypertable partitioned by event_time
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS anomaly.anomaly_events (
+    event_id        UUID            NOT NULL,
+    event_time      TIMESTAMPTZ     NOT NULL,           -- partition key
+    source_id       TEXT            NOT NULL,
+    feature_vector  JSONB           NOT NULL,
+    anomaly_score   FLOAT8          NOT NULL CHECK (anomaly_score >= 0 AND anomaly_score <= 1),
+    is_anomaly      BOOLEAN         NOT NULL DEFAULT false,
+    model_version   TEXT            NOT NULL,
+    processed_at    TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (event_id, event_time)
+);
+
+-- Convert to TimescaleDB hypertable (partition by event_time, 1-day chunks)
+SELECT create_hypertable(
+    'anomaly.anomaly_events',
+    'event_time',
+    chunk_time_interval => INTERVAL '1 day',
+    if_not_exists => TRUE
+);
+
+-- Enable compression (age > 7 days)
+ALTER TABLE anomaly.anomaly_events
+    SET (
+        timescaledb.compress,
+        timescaledb.compress_segmentby = 'source_id, is_anomaly',
+        timescaledb.compress_orderby   = 'event_time DESC'
+    );
+
+SELECT add_compression_policy(
+    'anomaly.anomaly_events',
+    INTERVAL '7 days',
+    if_not_exists => TRUE
+);
+
+-- Retention policy: drop chunks older than 90 days
+SELECT add_retention_policy(
+    'anomaly.anomaly_events',
+    INTERVAL '90 days',
+    if_not_exists => TRUE
+);
+
+-- Indexes for common Grafana query patterns
+CREATE INDEX IF NOT EXISTS idx_anomaly_events_source_time
+    ON anomaly.anomaly_events (source_id, event_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_anomaly_events_is_anomaly_time
+    ON anomaly.anomaly_events (is_anomaly, event_time DESC)
+    WHERE is_anomaly = true;
+
+CREATE INDEX IF NOT EXISTS idx_anomaly_events_model_version
+    ON anomaly.anomaly_events (model_version, event_time DESC);
+
+-- ─────────────────────────────────────────────────────────────
+-- Table: alert_log
+-- Stores alert history from Alert Agent
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS anomaly.alert_log (
+    alert_id        UUID            DEFAULT gen_random_uuid() PRIMARY KEY,
+    event_id        UUID            NOT NULL,
+    alert_time      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    severity        TEXT            NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    channel         TEXT            NOT NULL,           -- slack | email | pagerduty
+    payload         JSONB           NOT NULL,
+    acknowledged    BOOLEAN         NOT NULL DEFAULT false,
+    acknowledged_by TEXT,
+    acknowledged_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_alert_log_alert_time
+    ON anomaly.alert_log (alert_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_alert_log_severity
+    ON anomaly.alert_log (severity, alert_time DESC);
+
+-- ─────────────────────────────────────────────────────────────
+-- Table: model_registry
+-- Tracks model artifact metadata (complementary to MLflow)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS anomaly.model_registry (
+    model_id        UUID            DEFAULT gen_random_uuid() PRIMARY KEY,
+    model_version   TEXT            NOT NULL UNIQUE,
+    model_type      TEXT            NOT NULL CHECK (model_type IN ('isolation_forest', 'autoencoder', 'river_online')),
+    artifact_path   TEXT            NOT NULL,
+    mlflow_run_id   TEXT,
+    trained_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    is_active       BOOLEAN         NOT NULL DEFAULT false,
+    metrics         JSONB           NOT NULL DEFAULT '{}'::jsonb,
+    hyperparameters JSONB           NOT NULL DEFAULT '{}'::jsonb
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- Permissions (architecture.docx Section 8)
+-- ─────────────────────────────────────────────────────────────
+
+-- Worker: INSERT-only on anomaly_events, INSERT on alert_log
+GRANT USAGE ON SCHEMA anomaly TO anomaly_worker;
+GRANT INSERT ON anomaly.anomaly_events TO anomaly_worker;
+GRANT INSERT ON anomaly.alert_log TO anomaly_worker;
+GRANT SELECT ON anomaly.model_registry TO anomaly_worker;
+
+-- Grafana: SELECT-only on all tables
+GRANT USAGE ON SCHEMA anomaly TO grafana_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA anomaly TO grafana_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA anomaly
+    GRANT SELECT ON TABLES TO grafana_reader;
+
+-- ─────────────────────────────────────────────────────────────
+-- Continuous Aggregate: hourly anomaly rate (for Grafana)
+-- ─────────────────────────────────────────────────────────────
+CREATE MATERIALIZED VIEW IF NOT EXISTS anomaly.anomaly_rate_hourly
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 hour', event_time) AS bucket,
+    source_id,
+    COUNT(*)                          AS total_events,
+    SUM(CASE WHEN is_anomaly THEN 1 ELSE 0 END) AS anomaly_count,
+    AVG(anomaly_score)                AS avg_score,
+    MAX(anomaly_score)                AS max_score
+FROM anomaly.anomaly_events
+GROUP BY bucket, source_id
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy(
+    'anomaly.anomaly_rate_hourly',
+    start_offset  => INTERVAL '3 hours',
+    end_offset    => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour',
+    if_not_exists => TRUE
+);
+
+GRANT SELECT ON anomaly.anomaly_rate_hourly TO grafana_reader;

@@ -1,0 +1,65 @@
+# ============================================================
+# docker-compose.override.yml — Development overrides
+# Automatically merged with docker-compose.yml by Docker Compose
+# Enables: hot-reload, volume mounts, debug ports, relaxed auth
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI backend — hot-reload via uvicorn --reload ──────
+  fastapi-backend:
+    command:
+      - uvicorn
+      - app.main:app
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--log-level"
+      - "debug"
+    volumes:
+      - ./backend:/app          # live-reload source mount
+      - ./agents:/app/agents    # shared agents accessible
+      - ./ml:/app/ml            # shared ml modules accessible
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: DEBUG
+
+  # ── ML worker — verbose logging ────────────────────────────
+  ml-inference-worker:
+    command: ["python", "-m", "ml.worker.inference_worker"]
+    environment:
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./ml:/app/ml
+      - ./agents:/app/agents
+      - ./ml/artifacts:/app/ml/artifacts
+
+  # ── TimescaleDB — expose pgAdmin-friendly port ─────────────
+  timescaledb:
+    ports:
+      - "5433:5432"   # Avoid conflicts with local Postgres
+
+  # ── Kafka — additional debug env ───────────────────────────
+  kafka:
+    environment:
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
+
+  # ── Grafana — anonymous access in dev ─────────────────────
+  grafana:
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_LOG_LEVEL: warn
+
+  # ── Prometheus — shorter scrape for dev ────────────────────
+  prometheus:
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=2d"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
