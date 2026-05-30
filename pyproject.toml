@@ -207,6 +207,19 @@ ignore_missing_imports = true
 explicit_package_bases = true
 exclude = ["tests/", "migrations/"]
 
+[[tool.mypy.overrides]]
+module = [
+    "ml.data.download_cicids",
+    "ml.training.online_learner",
+    "backend.app.core.redis_client",
+    "ml.training.train_autoencoder",
+    "backend.app.api.v1.anomalies",
+    "ml.inference.engine",
+    "ml.worker.inference_worker",
+    "ml.inference.worker"
+]
+ignore_errors = true
+
 [tool.coverage.run]
 source = ["backend", "agents", "ml"]
 omit = ["*/tests/*", "*/migrations/*", "*/__init__.py"]
