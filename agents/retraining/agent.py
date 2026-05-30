@@ -6,13 +6,10 @@ Uses: APScheduler 3.10, scikit-learn 1.5, MLflow 2.13, MinIO
 """
 from __future__ import annotations
 
-import asyncio
 import os
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import numpy as np
-import pandas as pd
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -72,11 +69,11 @@ async def retrain_and_publish(model_version: str | None = None) -> bool:
     4. Signal ML worker to hot-reload
     5. Publish model-updates Kafka message
     """
-    from ml.training.train_isolation_forest import train_isolation_forest
     from agents.shared.tools import trigger_model_reload
+    from ml.training.train_isolation_forest import train_isolation_forest
 
     if model_version is None:
-        model_version = f"v{datetime.now(tz=timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        model_version = f"v{datetime.now(tz=UTC).strftime('%Y%m%d%H%M%S')}"
 
     logger.info("Retraining pipeline started", model_version=model_version)
 

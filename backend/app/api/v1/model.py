@@ -5,8 +5,8 @@ Interfaces with retraining pipeline log execution, rolls back models via Kafka, 
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Annotated, List, Optional
+from datetime import UTC, datetime
+from typing import Annotated
 from uuid import UUID
 
 import structlog
@@ -19,14 +19,15 @@ from app.core.database import get_db_session
 from app.core.redis_client import redis_pool
 from app.schemas.auth import TokenData
 from app.schemas.model import (
-    ModelStatusOut,
-    ModelVersionOut,
+    ModelMetricsOut,
     ModelRetrainIn,
     ModelRetrainJobOut,
     ModelRollbackIn,
-    ModelMetricsOut,
+    ModelStatusOut,
+    ModelVersionOut,
 )
 from app.services.event_service import KafkaProducerSingleton
+
 try:
     from database.models import RetrainJob
 except ModuleNotFoundError:
@@ -54,7 +55,7 @@ async def get_model_status(
         client = redis_pool.client
         raw_count = await client.get("metrics:inferences_total")
         total_inferences = int(raw_count) if raw_count else 125032
-        
+
         raw_lat = await client.get("metrics:avg_latency_ms")
         avg_latency = float(raw_lat) if raw_lat else 8.42
     except Exception:
@@ -73,7 +74,7 @@ async def get_model_status(
 
     return ModelStatusOut(
         model_version=active_version,
-        load_time=datetime.now(timezone.utc).replace(hour=3, minute=0, second=0, microsecond=0),
+        load_time=datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0),
         avg_inference_latency_ms=avg_latency,
         total_inferences=total_inferences,
     )
@@ -81,14 +82,14 @@ async def get_model_status(
 
 @router.get(
     "/versions",
-    response_model=List[ModelVersionOut],
+    response_model=list[ModelVersionOut],
     summary="List historical and registered model versions",
 )
 async def list_model_versions(
     current_user: Annotated[TokenData, Depends(check_viewer)],
     limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-) -> List[ModelVersionOut]:
+) -> list[ModelVersionOut]:
     """
     Query all model artifacts registered in the model registry.
     """
@@ -106,14 +107,14 @@ async def list_model_versions(
             model_version="v1.2.0-prod",
             accuracy=0.984,
             f1_score=0.962,
-            registered_at=datetime.now(timezone.utc).replace(hour=3, minute=0, second=0, microsecond=0),
+            registered_at=datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0),
             active="v1.2.0-prod" == active_version,
         ),
         ModelVersionOut(
             model_version="v1.1.0-legacy",
             accuracy=0.971,
             f1_score=0.945,
-            registered_at=datetime.now(timezone.utc).replace(hour=3, minute=0, second=0, microsecond=0),
+            registered_at=datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0),
             active="v1.1.0-legacy" == active_version,
         ),
     ]
@@ -139,7 +140,7 @@ async def trigger_retraining(
         status="PENDING",
         reason=payload.reason,
         force=payload.force,
-        created_at=datetime.now(tz=timezone.utc),
+        created_at=datetime.now(tz=UTC),
     )
     db.add(job)
     await db.flush()
@@ -152,7 +153,7 @@ async def trigger_retraining(
             "command": "RETRAIN",
             "reason": payload.reason,
             "force": payload.force,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
         }
         producer.produce(
             topic=settings.KAFKA_MODEL_UPDATES_TOPIC,
@@ -211,7 +212,7 @@ async def rollback_model(
             "command": "ROLLBACK",
             "target_version": payload.version,
             "reason": payload.reason,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
         }
         producer.produce(
             topic=settings.KAFKA_MODEL_UPDATES_TOPIC,
@@ -219,7 +220,7 @@ async def rollback_model(
             value=json.dumps(message),
         )
         producer.flush(timeout=2)
-        
+
         logger.info(
             "Model rollback command dispatched",
             target_version=payload.version,
@@ -254,5 +255,5 @@ async def get_model_metrics(
         recall=0.947,
         f1_score=0.964,
         auc_roc=0.991,
-        evaluation_date=datetime.now(timezone.utc).replace(hour=3, minute=0, second=0, microsecond=0),
+        evaluation_date=datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0),
     )

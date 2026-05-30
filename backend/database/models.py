@@ -15,16 +15,16 @@ Tables reflected:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
+from app.core.database import Base
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
     Float,
-    ForeignKey,
     Index,
     Integer,
     Text,
@@ -34,15 +34,13 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
-
 __all__ = [
-    "Base",
-    "AnomalyEvent",
-    "HourlyAnomalyStat",
-    "EventLabel",
     "Alert",
     "AlertSilence",
+    "AnomalyEvent",
+    "Base",
+    "EventLabel",
+    "HourlyAnomalyStat",
     "RetrainJob",
 ]
 
@@ -108,7 +106,7 @@ class AnomalyEvent(AsyncAttrs, Base):
     processed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=text("NOW()"),
     )
 
@@ -162,11 +160,11 @@ class HourlyAnomalyStat(AsyncAttrs, Base):
         BigInteger,
         nullable=False,
     )
-    avg_score: Mapped[Optional[float]] = mapped_column(
+    avg_score: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
     )
-    max_score: Mapped[Optional[float]] = mapped_column(
+    max_score: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
     )
@@ -215,14 +213,14 @@ class EventLabel(AsyncAttrs, Base):
         Text,
         nullable=False,
     )
-    note: Mapped[Optional[str]] = mapped_column(
+    note: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
     labeled_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=text("NOW()"),
     )
 
@@ -267,29 +265,29 @@ class Alert(AsyncAttrs, Base):
         Float,
         nullable=False,
     )
-    analyst_id: Mapped[Optional[str]] = mapped_column(
+    analyst_id: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    note: Mapped[Optional[str]] = mapped_column(
+    note: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    resolution: Mapped[Optional[str]] = mapped_column(
+    resolution: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=text("NOW()"),
     )
-    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
-    resolved_at: Mapped[Optional[datetime]] = mapped_column(
+    resolved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -315,7 +313,7 @@ class AlertSilence(AsyncAttrs, Base):
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
     )
-    source_id: Mapped[Optional[str]] = mapped_column(
+    source_id: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,  # If NULL, silences all alert generators
     )
@@ -330,7 +328,7 @@ class AlertSilence(AsyncAttrs, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=text("NOW()"),
     )
     expires_at: Mapped[datetime] = mapped_column(
@@ -378,14 +376,14 @@ class RetrainJob(AsyncAttrs, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=text("NOW()"),
     )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
-    error: Mapped[Optional[str]] = mapped_column(
+    error: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )

@@ -5,7 +5,6 @@ Run: locust -f tests/load/locustfile.py --host=http://localhost:8000
 """
 from __future__ import annotations
 
-import json
 import random
 import uuid
 from typing import Any

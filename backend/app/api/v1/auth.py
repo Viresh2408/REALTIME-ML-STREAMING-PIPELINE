@@ -10,7 +10,7 @@ Predefined users:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import structlog
@@ -18,11 +18,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.redis_client import redis_pool
-from app.schemas.auth import LoginRequest, Token, TokenData, TokenRefreshRequest, UserOut, UserRole
+from app.schemas.auth import Token, TokenData, TokenRefreshRequest, UserRole
 
 logger = structlog.get_logger(__name__)
 
@@ -70,17 +69,17 @@ def create_token(
         "role": role,
         "type": token_type,
         "jti": str(uuid.uuid4()),
-        "iat": datetime.now(tz=timezone.utc),
+        "iat": datetime.now(tz=UTC),
     }
-    
+
     if expires_delta:
-        expire = datetime.now(tz=timezone.utc) + expires_delta
+        expire = datetime.now(tz=UTC) + expires_delta
     elif token_type == "access":
-        expire = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+        expire = datetime.now(tz=UTC) + timedelta(hours=1)
     else:
         # Refresh token: 7 days
-        expire = datetime.now(tz=timezone.utc) + timedelta(days=7)
-        
+        expire = datetime.now(tz=UTC) + timedelta(days=7)
+
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -118,17 +117,17 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> Tok
         role: str | None = payload.get("role")
         token_type: str | None = payload.get("type")
         jti: str | None = payload.get("jti")
-        
+
         if sub is None or role is None or token_type != "access" or jti is None:
             raise credentials_exception
-            
+
         if await is_token_revoked(jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-            
+
         return TokenData(sub=sub, role=UserRole(role))
     except JWTError:
         raise credentials_exception
@@ -167,7 +166,7 @@ async def login_oauth2(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
+
     if user["disabled"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -223,7 +222,7 @@ async def refresh_tokens(payload: TokenRefreshRequest) -> Token:
         # Revoke the old refresh token
         exp: float | None = decoded.get("exp")
         if exp:
-            remaining = int(exp - datetime.now(tz=timezone.utc).timestamp())
+            remaining = int(exp - datetime.now(tz=UTC).timestamp())
             if remaining > 0:
                 await blacklist_token(jti, remaining)
 
@@ -249,12 +248,12 @@ async def revoke_token(
         )
         jti: str | None = payload.get("jti")
         exp: float | None = payload.get("exp")
-        
+
         if jti and exp:
-            remaining = int(exp - datetime.now(tz=timezone.utc).timestamp())
+            remaining = int(exp - datetime.now(tz=UTC).timestamp())
             if remaining > 0:
                 await blacklist_token(jti, remaining)
-                
+
         return {"detail": "Token successfully revoked"}
     except JWTError:
         raise HTTPException(

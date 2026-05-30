@@ -25,12 +25,11 @@ from __future__ import annotations
 
 import structlog
 from prometheus_client import (
+    REGISTRY,
     Counter,
     Gauge,
     Histogram,
     start_http_server,
-    REGISTRY,
-    CollectorRegistry,
 )
 
 logger = structlog.get_logger(__name__)

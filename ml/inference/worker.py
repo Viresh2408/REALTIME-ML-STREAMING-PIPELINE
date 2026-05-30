@@ -5,17 +5,17 @@ Starts: TimescaleDB writer + ML inference Kafka consumer loops
 from __future__ import annotations
 
 import asyncio
-import os
 import signal
+
 import structlog
 
 logger = structlog.get_logger(__name__)
 
 
 async def main() -> None:
+    from agents.dashboard.agent import DashboardBridgeWorker
     from agents.ml_inference.agent import MLInferenceWorker
     from agents.timescaledb_writer.agent import TimescaleDBWriterWorker
-    from agents.dashboard.agent import DashboardBridgeWorker
 
     inference_worker = MLInferenceWorker()
     writer_worker = TimescaleDBWriterWorker()

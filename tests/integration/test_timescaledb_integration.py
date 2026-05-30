@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Generator
+from collections.abc import Generator
+from datetime import UTC, datetime
 
 import pytest
 
@@ -82,7 +82,7 @@ class TestTimescaleDBSchema:
 
             # Insert a test event
             event_id = uuid.uuid4()
-            event_time = datetime.now(tz=timezone.utc)
+            event_time = datetime.now(tz=UTC)
             await conn.execute(
                 """
                 INSERT INTO anomaly_events

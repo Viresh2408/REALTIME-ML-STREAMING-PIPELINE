@@ -4,29 +4,30 @@ Enables alert triage lifecycle: querying, acknowledging, resolving, and setting 
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Any
 from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import check_analyst, check_viewer
 from app.core.database import get_db_session
-from app.schemas.auth import TokenData
-from app.schemas.events import AnomalyEventOut
 from app.schemas.alerts import (
-    AlertOut,
-    AlertSeverity,
-    AlertStatus,
     AlertAcknowledgeIn,
+    AlertOut,
     AlertResolveIn,
+    AlertSeverity,
     AlertSilenceIn,
     AlertSilenceOut,
+    AlertStatus,
 )
+from app.schemas.auth import TokenData
+from app.schemas.events import AnomalyEventOut
+
 try:
     from database.models import Alert, AlertSilence, AnomalyEvent
 except ModuleNotFoundError:
@@ -39,23 +40,23 @@ router = APIRouter()
 
 @router.get(
     "",
-    response_model=List[AlertOut],
+    response_model=list[AlertOut],
     summary="List active and resolved alerts",
 )
 async def list_alerts(
     current_user: Annotated[TokenData, Depends(check_viewer)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    status: Optional[AlertStatus] = Query(default=None, description="ACTIVE, ACKNOWLEDGED, RESOLVED"),
-    severity: Optional[AlertSeverity] = Query(default=None, description="LOW, MEDIUM, HIGH, CRITICAL"),
+    status: AlertStatus | None = Query(default=None, description="ACTIVE, ACKNOWLEDGED, RESOLVED"),
+    severity: AlertSeverity | None = Query(default=None, description="LOW, MEDIUM, HIGH, CRITICAL"),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-) -> List[AlertOut]:
+) -> list[AlertOut]:
     """
     Retrieve list of active or historic alerts from PostgreSQL.
     Supports filtering by severity level and status flags.
     """
     stmt = select(Alert).order_by(Alert.created_at.desc()).limit(limit).offset(offset)
-    
+
     if status:
         stmt = stmt.where(Alert.status == status.value)
     if severity:
@@ -63,13 +64,13 @@ async def list_alerts(
 
     result = await db.execute(stmt)
     rows = result.scalars().all()
-    
+
     return [AlertOut.model_validate(r) for r in rows]
 
 
 class AlertWithEventsOut(BaseModel):
     alert: AlertOut
-    linked_events: List[AnomalyEventOut]
+    linked_events: list[AnomalyEventOut]
 
 
 @router.get(
@@ -134,6 +135,7 @@ async def get_alert(
 
 from pydantic import BaseModel
 
+
 @router.patch(
     "/{alert_id}/acknowledge",
     response_model=AlertOut,
@@ -166,8 +168,8 @@ async def acknowledge_alert(
     alert.status = "ACKNOWLEDGED"
     alert.analyst_id = payload.analyst_id
     alert.note = payload.note
-    alert.acknowledged_at = datetime.now(tz=timezone.utc)
-    
+    alert.acknowledged_at = datetime.now(tz=UTC)
+
     await db.flush()
     logger.info("Alert acknowledged", alert_id=str(alert_id), analyst=payload.analyst_id)
     return AlertOut.model_validate(alert)
@@ -199,7 +201,7 @@ async def resolve_alert(
     alert.status = "RESOLVED"
     alert.analyst_id = payload.analyst_id
     alert.resolution = payload.resolution
-    alert.resolved_at = datetime.now(tz=timezone.utc)
+    alert.resolved_at = datetime.now(tz=UTC)
 
     await db.flush()
     logger.info("Alert resolved", alert_id=str(alert_id), analyst=payload.analyst_id)
@@ -221,7 +223,7 @@ async def silence_alerts(
     Register a silencing configuration to suppress alert notifications for a specified
     duration in minutes (e.g. during maintenance windows).
     """
-    created_at = datetime.now(tz=timezone.utc)
+    created_at = datetime.now(tz=UTC)
     expires_at = created_at + timedelta(minutes=payload.duration_minutes)
 
     silence_record = AlertSilence(
@@ -231,7 +233,7 @@ async def silence_alerts(
         created_at=created_at,
         expires_at=expires_at,
     )
-    
+
     db.add(silence_record)
     await db.flush()
 

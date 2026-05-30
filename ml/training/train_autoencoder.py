@@ -11,9 +11,9 @@ from pathlib import Path
 import mlflow
 import mlflow.pytorch
 import numpy as np
+import structlog
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-import structlog
 
 from ml.models.autoencoder import Autoencoder, AutoencoderTrainer
 

@@ -4,15 +4,14 @@ pytest 8.x
 """
 from __future__ import annotations
 
-import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 
+from backend.app.schemas.auth import Token, TokenData
 from backend.app.schemas.events import AnomalyEventOut, IngestEventIn
 from backend.app.schemas.stats import AnomalyStatsOut
-from backend.app.schemas.auth import Token, TokenData
 
 
 @pytest.mark.unit
@@ -79,13 +78,13 @@ class TestAnomalyEventOut:
     def _make_event(self, **kwargs) -> AnomalyEventOut:
         defaults = {
             "event_id": uuid4(),
-            "event_time": datetime.now(tz=timezone.utc),
+            "event_time": datetime.now(tz=UTC),
             "source_id": "sensor-1",
             "feature_vector": [0.1, 0.2],
             "anomaly_score": 0.85,
             "is_anomaly": True,
             "model_version": "v1",
-            "processed_at": datetime.now(tz=timezone.utc),
+            "processed_at": datetime.now(tz=UTC),
         }
         defaults.update(kwargs)
         return AnomalyEventOut(**defaults)

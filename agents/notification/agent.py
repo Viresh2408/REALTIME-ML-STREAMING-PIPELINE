@@ -6,14 +6,13 @@ Uses: LangChain 0.2 + Claude claude-sonnet-4-20250514 for human-readable alert s
 """
 from __future__ import annotations
 
-import json
 import os
 from typing import Any
 
 import httpx
 import structlog
-from langchain_anthropic import ChatAnthropic
 from langchain.schema import HumanMessage
+from langchain_anthropic import ChatAnthropic
 
 from agents.shared.state import AgentState
 

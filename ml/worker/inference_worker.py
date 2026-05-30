@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import warnings
+
 warnings.filterwarnings("ignore")
 import json
 import os
@@ -27,12 +28,12 @@ import signal
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, cast
+from datetime import UTC, datetime
+from typing import Any, cast
 
 import numpy as np
 import structlog
-from confluent_kafka import Consumer, KafkaException, Producer, TopicPartition
+from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
 from confluent_kafka.serialization import MessageField, SerializationContext
@@ -129,8 +130,8 @@ def _safe_uuid(raw: Any) -> str:
 def _ts_to_datetime(raw_ts: Any) -> datetime:
     """Convert an epoch-millisecond timestamp (int/float) to a UTC datetime."""
     if isinstance(raw_ts, (int, float)):
-        return datetime.fromtimestamp(raw_ts / 1_000.0, tz=timezone.utc)
-    return datetime.now(tz=timezone.utc)
+        return datetime.fromtimestamp(raw_ts / 1_000.0, tz=UTC)
+    return datetime.now(tz=UTC)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ class ProductionInferenceEngine:
 
         MODEL_VERSION_INFO.labels(version=self.version).set(1)
 
-    async def infer(self, raw_event: Dict[str, Any]) -> Dict[str, Any]:
+    async def infer(self, raw_event: dict[str, Any]) -> dict[str, Any]:
         """
         Execute preprocessing + inference under a read-lock.
         Returns a ScoredEvent dict (Avro-compatible) with:
@@ -230,7 +231,7 @@ class ProductionInferenceEngine:
             "processed_at":  int(time.time() * 1_000),
         }
 
-    async def infer_batch(self, raw_events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def infer_batch(self, raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Execute batched preprocessing + inference under a read-lock.
         Returns a list of ScoredEvent dicts.
@@ -281,7 +282,7 @@ class ProductionInferenceEngine:
             if score >= effective_threshold:
                 is_anomaly = True
             severity = _score_to_severity(score) if is_anomaly else "LOW"
-            
+
             scored_list.append({
                 "event_id":      raw_event.get("event_id", ""),
                 "source_id":     raw_event.get("source_id", ""),
@@ -294,7 +295,7 @@ class ProductionInferenceEngine:
                 "model_version": model_ver,
                 "processed_at":  int(time.time() * 1_000),
             })
-            
+
         return scored_list
 
 
@@ -322,8 +323,8 @@ class InferenceWorkerTask:
         engine: ProductionInferenceEngine,
         producer: Producer,
         session_factory: Any,
-        raw_deserializer: Optional[AvroDeserializer],
-        scored_serializer: Optional[AvroSerializer],
+        raw_deserializer: AvroDeserializer | None,
+        scored_serializer: AvroSerializer | None,
     ) -> None:
         self.task_id = task_id
         self.engine = engine
@@ -408,7 +409,7 @@ class InferenceWorkerTask:
 
     async def _process_message_batch(
         self,
-        msgs: List[Any],
+        msgs: list[Any],
         loop: asyncio.AbstractEventLoop,
     ) -> None:
         """
@@ -416,7 +417,7 @@ class InferenceWorkerTask:
         """
         valid_msgs = []
         raw_events = []
-        
+
         for msg in msgs:
             if msg.error():
                 logger.warning(
@@ -425,12 +426,12 @@ class InferenceWorkerTask:
                     error=str(msg.error()),
                 )
                 continue
-                
+
             raw_bytes = msg.value()
             if raw_bytes is None:
                 self._consumer.commit(message=msg, asynchronous=True)
                 continue
-                
+
             try:
                 event_dict = self._deserialise(raw_bytes)
                 valid_msgs.append((msg, raw_bytes))
@@ -458,15 +459,15 @@ class InferenceWorkerTask:
             for (msg, raw_bytes), scored in zip(valid_msgs, scored_events):
                 try:
                     self._produce_scored(scored)
-                    
+
                     EVENTS_PROCESSED.labels(status="success").inc()
                     if scored["is_anomaly"]:
                         ANOMALIES_DETECTED.labels(severity=scored["severity"]).inc()
-                        
+
                     self._success_count += 1
                     self._last_msg = msg
                     self._uncommitted_count += 1
-                    
+
                     if self._success_count % LOG_EVERY_N_EVENTS == 0:
                         logger.info(
                             "worker_task.checkpoint",
@@ -487,7 +488,7 @@ class InferenceWorkerTask:
                         error=str(produce_err),
                     )
                     self._route_to_dlq(raw_bytes, produce_err)
-                    
+
             # ── Step 5: Batch commit offsets ──────────────────────────────────
             if self._uncommitted_count >= 20:
                 self._consumer.commit(message=self._last_msg, asynchronous=True)
@@ -506,7 +507,7 @@ class InferenceWorkerTask:
                 self._route_to_dlq(raw_bytes, exc)
                 self._consumer.commit(message=msg, asynchronous=True)
 
-    def _deserialise(self, raw_bytes: bytes) -> Dict[str, Any]:
+    def _deserialise(self, raw_bytes: bytes) -> dict[str, Any]:
         """
         Attempt Avro deserialisation first (Confluent magic byte 0x00 prefix).
         Falls back to UTF-8 JSON on any failure.
@@ -542,7 +543,7 @@ class InferenceWorkerTask:
             )
         return payload
 
-    async def _write_to_db(self, scored: Dict[str, Any]) -> None:
+    async def _write_to_db(self, scored: dict[str, Any]) -> None:
         """
         Insert a scored event into the TimescaleDB anomaly_events hypertable.
         Raises on failure so the caller can route to DLQ.
@@ -563,7 +564,7 @@ class InferenceWorkerTask:
                         "anomaly_score":  scored["anomaly_score"],
                         "is_anomaly":     scored["is_anomaly"],
                         "model_version":  scored["model_version"],
-                        "processed_at":   datetime.now(tz=timezone.utc),
+                        "processed_at":   datetime.now(tz=UTC),
                     },
                 )
                 await session.commit()
@@ -577,7 +578,7 @@ class InferenceWorkerTask:
                 )
                 raise  # propagate so caller routes to DLQ and commits offset
 
-    def _produce_scored(self, scored: Dict[str, Any]) -> None:
+    def _produce_scored(self, scored: dict[str, Any]) -> None:
         """Serialise and produce a ScoredEvent to the scored-events topic."""
         if self.scored_serializer is not None:
             try:
@@ -634,7 +635,7 @@ class InferenceWorkerTask:
 # Consumer-lag monitor (background coroutine)
 # ──────────────────────────────────────────────────────────────────────────────
 
-async def _monitor_consumer_lag(tasks: List[InferenceWorkerTask]) -> None:
+async def _monitor_consumer_lag(tasks: list[InferenceWorkerTask]) -> None:
     """
     Every 5 s: query committed offset + high-watermark for each partition
     assigned to each worker consumer, then update CONSUMER_LAG gauge.
@@ -721,8 +722,8 @@ async def main() -> None:
     sr_url = os.getenv("KAFKA_SCHEMA_REGISTRY_URL", "http://localhost:8081")
     sr_client = SchemaRegistryClient({"url": sr_url})
 
-    raw_deserializer: Optional[AvroDeserializer] = None
-    scored_serializer: Optional[AvroSerializer] = None
+    raw_deserializer: AvroDeserializer | None = None
+    scored_serializer: AvroSerializer | None = None
 
     try:
         raw_schema_str = sr_client.get_latest_version("raw-events-value").schema.schema_str
@@ -759,7 +760,7 @@ async def main() -> None:
     reload_handler = ModelReloadHandler(inference_engine, rw_lock)
 
     # ── 6. Build 4 concurrent worker tasks ───────────────────────────────────
-    worker_tasks: List[InferenceWorkerTask] = [
+    worker_tasks: list[InferenceWorkerTask] = [
         InferenceWorkerTask(
             task_id=tid,
             engine=inference_engine,

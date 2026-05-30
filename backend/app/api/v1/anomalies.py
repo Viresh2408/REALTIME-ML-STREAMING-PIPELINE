@@ -4,8 +4,8 @@ Provides rich querying, stats aggregation, and heatmap generation.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 from uuid import UUID
 
 import structlog
@@ -15,9 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import check_viewer
 from app.core.database import get_db_session
+from app.schemas.anomalies import AnomalyStatsOut, HeatmapItem, HeatmapOut
 from app.schemas.auth import TokenData
 from app.schemas.events import AnomalyEventOut
-from app.schemas.anomalies import AnomalyStatsOut, HeatmapOut, HeatmapItem
 
 logger = structlog.get_logger(__name__)
 
@@ -34,20 +34,20 @@ SEVERITY_RANGES = {
 
 @router.get(
     "",
-    response_model=List[AnomalyEventOut],
+    response_model=list[AnomalyEventOut],
     summary="List scored anomalies with filtering options",
 )
 async def list_anomalies(
     current_user: Annotated[TokenData, Depends(check_viewer)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    min_score: Optional[float] = Query(default=None, ge=0.0, le=1.0),
-    severity: Optional[str] = Query(default=None, description="LOW, MEDIUM, HIGH, CRITICAL"),
-    source_id: Optional[str] = Query(default=None),
-    start: Optional[datetime] = Query(default=None),
-    end: Optional[datetime] = Query(default=None),
+    min_score: float | None = Query(default=None, ge=0.0, le=1.0),
+    severity: str | None = Query(default=None, description="LOW, MEDIUM, HIGH, CRITICAL"),
+    source_id: str | None = Query(default=None),
+    start: datetime | None = Query(default=None),
+    end: datetime | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-) -> List[AnomalyEventOut]:
+) -> list[AnomalyEventOut]:
     """
     Query scored anomalies. Automatically restricts search to is_anomaly = true.
     Supports filtering by min_score, severity, origin source_id, and time range.
@@ -126,15 +126,15 @@ async def get_anomaly_stats(
     current_user: Annotated[TokenData, Depends(check_viewer)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     bucket: str = Query(default="5m", description="Bucket window, e.g. 5m, 1h, 1d"),
-    start: Optional[datetime] = Query(default=None),
-    end: Optional[datetime] = Query(default=None),
+    start: datetime | None = Query(default=None),
+    end: datetime | None = Query(default=None),
 ) -> AnomalyStatsOut:
     """
     Return aggregated metrics (total count, anomaly rate, avg/max scores)
     within the specified start and end time boundaries.
     """
     # Default to last 24 hours if start not provided
-    end_time = end or datetime.now(timezone.utc)
+    end_time = end or datetime.now(UTC)
     start_time = start or (end_time - timedelta(days=1))
 
     sql = text("""
@@ -176,14 +176,14 @@ async def get_heatmap(
     current_user: Annotated[TokenData, Depends(check_viewer)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     resolution: str = Query(default="1h", description="Bucket resolution: 5m, 1h, 1d"),
-    start: Optional[datetime] = Query(default=None),
-    end: Optional[datetime] = Query(default=None),
+    start: datetime | None = Query(default=None),
+    end: datetime | None = Query(default=None),
 ) -> HeatmapOut:
     """
     Provides aggregated time-series buckets cross-referenced by source_id.
     Powers heatmap visualisations on analytical dashboards.
     """
-    end_time = end or datetime.now(timezone.utc)
+    end_time = end or datetime.now(UTC)
     start_time = start or (end_time - timedelta(days=7))  # Default 7 days
 
     # Safely convert resolution to Postgres INTERVAL syntax
@@ -197,7 +197,7 @@ async def get_heatmap(
     else:
         interval_str = "1 hour"
 
-    sql = text(f"""
+    sql = text("""
         SELECT
             time_bucket(INTERVAL :interval, event_time)        AS time_bucket,
             source_id,

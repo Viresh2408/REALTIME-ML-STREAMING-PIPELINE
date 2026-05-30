@@ -1,11 +1,11 @@
 import os
-import httpx
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any
 
+import httpx
 from fastapi import FastAPI
-from mcp_fastapi import create_mcp_server
 from mcp.server import Server
+from mcp_fastapi import create_mcp_server
 
 app = FastAPI(title="grafana-mcp")
 server = Server("grafana-mcp")
@@ -20,7 +20,7 @@ def get_grafana_headers():
     return headers
 
 @server.tool()
-async def create_annotation(text: str, tags: list[str]) -> Dict[str, Any]:
+async def create_annotation(text: str, tags: list[str]) -> dict[str, Any]:
     """Creates a global annotation in Grafana."""
     async with httpx.AsyncClient() as client:
         payload = {
@@ -37,7 +37,7 @@ async def create_annotation(text: str, tags: list[str]) -> Dict[str, Any]:
         return response.json()
 
 @server.tool()
-async def get_dashboard_snapshot(dashboard_uid: str) -> Dict[str, Any]:
+async def get_dashboard_snapshot(dashboard_uid: str) -> dict[str, Any]:
     """Generates a snapshot link for a Grafana dashboard."""
     # Grafana snapshot API
     async with httpx.AsyncClient() as client:
@@ -54,7 +54,7 @@ async def get_dashboard_snapshot(dashboard_uid: str) -> Dict[str, Any]:
         return response.json()
 
 @server.tool()
-async def silence_alert(alert_id: str, duration_hours: int = 1) -> Dict[str, Any]:
+async def silence_alert(alert_id: str, duration_hours: int = 1) -> dict[str, Any]:
     """Silences an alert in Grafana Alerting."""
     async with httpx.AsyncClient() as client:
         # Simple mock payload for Alertmanager silence

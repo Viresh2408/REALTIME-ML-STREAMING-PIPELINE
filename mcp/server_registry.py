@@ -1,10 +1,11 @@
+from typing import Any
+
 from fastapi import FastAPI
-from typing import Dict, Any, List
 
 app = FastAPI(title="MCP Server Registry")
 
 @app.get("/mcp/servers")
-async def list_servers() -> Dict[str, List[Dict[str, Any]]]:
+async def list_servers() -> dict[str, list[dict[str, Any]]]:
     """Lists all available MCP servers in this cluster."""
     servers = [
         {

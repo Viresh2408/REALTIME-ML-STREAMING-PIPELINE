@@ -4,8 +4,8 @@ Model management schemas — Pydantic v2
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -22,8 +22,8 @@ class ModelVersionOut(BaseModel):
     """Model version log entry."""
 
     model_version: str = Field(..., description="Unique model identifier")
-    accuracy: Optional[float] = Field(default=None, description="Accuracy rating")
-    f1_score: Optional[float] = Field(default=None, description="F1 Score")
+    accuracy: float | None = Field(default=None, description="Accuracy rating")
+    f1_score: float | None = Field(default=None, description="F1 Score")
     registered_at: datetime = Field(..., description="Registry registration timestamp")
     active: bool = Field(..., description="Is this currently the running model")
 
@@ -43,8 +43,8 @@ class ModelRetrainJobOut(BaseModel):
     reason: str = Field(..., description="Retrain motivation reason")
     force: bool = Field(..., description="Force parameter used")
     created_at: datetime = Field(..., description="Triggered timestamp")
-    completed_at: Optional[datetime] = Field(default=None, description="Completion timestamp")
-    error: Optional[str] = Field(default=None, description="Errors logged during processing")
+    completed_at: datetime | None = Field(default=None, description="Completion timestamp")
+    error: str | None = Field(default=None, description="Errors logged during processing")
 
     model_config = {"from_attributes": True}
 

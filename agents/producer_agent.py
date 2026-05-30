@@ -1,18 +1,20 @@
-import sys
-import os
 import asyncio
 import json
-import uuid
+import os
+import sys
 import time
+import uuid
+from typing import Any
+
 import pandas as pd
-from typing import Dict, Any
-from fastapi import FastAPI, Request, HTTPException
 import uvicorn
 from confluent_kafka import Producer
+from fastapi import FastAPI, HTTPException, Request
 
 # Ensure project root is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.env_loader import load_env
+
 load_env()
 
 app = FastAPI(title="Producer Agent Webhook")
@@ -38,15 +40,15 @@ class ProducerAgent:
         self.running = True
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         data_path = os.path.join(base_dir, "ml", "data", "raw", "cicids2017.csv")
-        
+
         if not os.path.exists(data_path):
             print(f"Data not found at {data_path}. Replay skipped.")
             return
-            
+
         chunksize = 1000
         interval = 1.0 / events_per_second
         print(f"Starting replay of {data_path} at {events_per_second} eps.")
-        
+
         try:
             for chunk in pd.read_csv(data_path, chunksize=chunksize):
                 if not self.running:
@@ -54,7 +56,7 @@ class ProducerAgent:
                 for _, row in chunk.iterrows():
                     if not self.running:
                         break
-                    
+
                     event_dict = {
                         "event_id": str(uuid.uuid4()),
                         "source_id": "cicids-replay",
@@ -62,7 +64,7 @@ class ProducerAgent:
                         "features": row.to_dict(),
                         "event_time": int(time.time() * 1000)
                     }
-                    
+
                     self.producer.produce(
                         topic=self.topic,
                         key=event_dict["event_id"],
@@ -82,7 +84,7 @@ class ProducerAgent:
 agent = ProducerAgent()
 
 @app.post("/webhook")
-async def webhook(request: Request) -> Dict[str, str]:
+async def webhook(request: Request) -> dict[str, str]:
     """HTTP webhook endpoint for external event injection."""
     try:
         data = await request.json()

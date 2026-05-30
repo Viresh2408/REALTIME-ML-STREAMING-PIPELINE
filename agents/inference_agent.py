@@ -1,13 +1,12 @@
 import asyncio
-import os
-import json
-import time
-from prometheus_client import start_http_server, Counter, Histogram
-from confluent_kafka import Consumer, Producer
-
-import sys
-import os
 import importlib.util
+import json
+import os
+import sys
+import time
+
+from confluent_kafka import Consumer, Producer
+from prometheus_client import Counter, Histogram, start_http_server
 
 # Ensure project root and ml subdirectory are in sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,6 +18,7 @@ if ml_path not in sys.path:
 
 # Load env variables and adjust hosts for local Windows execution
 from agents.env_loader import load_env
+
 load_env()
 
 # Dynamically load InferenceEngine from ml/inference.py to avoid shadowing conflict
@@ -42,20 +42,20 @@ class MLInferenceAgent:
         self.scored_topic = os.getenv("KAFKA_SCORED_EVENTS_TOPIC", "scored-events")
         self.update_topic = os.getenv("KAFKA_MODEL_UPDATES_TOPIC", "model-updates")
         self.threshold = float(os.getenv("ANOMALY_THRESHOLD", "0.7"))
-        
+
         self.consumer = Consumer({
             'bootstrap.servers': bootstrap_servers,
             'group.id': os.getenv("KAFKA_CONSUMER_GROUP_ID", "ml-inference-group"),
             'auto.offset.reset': 'earliest',
             'enable.auto.commit': False
         })
-        
+
         self.update_consumer = Consumer({
             'bootstrap.servers': bootstrap_servers,
             'group.id': 'ml-inference-update-group',
             'auto.offset.reset': 'latest'
         })
-        
+
         self.producer = Producer({'bootstrap.servers': bootstrap_servers})
         self.engine = InferenceEngine()
         self.running = False
@@ -72,7 +72,7 @@ class MLInferenceAgent:
             if val is None:
                 await asyncio.sleep(1)
                 continue
-            
+
             try:
                 update_event = json.loads(val.decode('utf-8'))
                 version = update_event.get("version", "latest")
@@ -84,13 +84,13 @@ class MLInferenceAgent:
     async def run(self) -> None:
         self.running = True
         self.consumer.subscribe([self.raw_topic])
-        
+
         # Start Prometheus metrics server
         start_http_server(8001)
-        
+
         # Start hot-reload listener in background
         asyncio.create_task(self._process_updates())
-        
+
         print("MLInferenceAgent started polling...")
         try:
             while self.running:
@@ -102,24 +102,24 @@ class MLInferenceAgent:
                 if msg.error():
                     print(f"Consumer error: {msg.error()}")
                     continue
-                
+
                 try:
                     start_time = time.time()
-                    
+
                     val = msg.value()
                     if val is None:
                         continue
-                    
+
                     event_dict = json.loads(val.decode('utf-8'))
                     scored_event = self.engine.infer(event_dict)
-                    
+
                     # Apply explicit thresholding if required
                     if scored_event["anomaly_score"] >= self.threshold:
                         scored_event["is_anomaly"] = True
                         ANOMALIES_DETECTED.inc()
                     else:
                         scored_event["is_anomaly"] = False
-                    
+
                     # Produce to scored-events
                     self.producer.produce(
                         topic=self.scored_topic,
@@ -127,17 +127,17 @@ class MLInferenceAgent:
                         value=json.dumps(scored_event)
                     )
                     self.producer.poll(0)
-                    
+
                     # Commit offset only on success
                     self.consumer.commit(message=msg)
-                    
+
                     # Update metrics
                     INFERENCE_LATENCY.observe(time.time() - start_time)
                     EVENTS_PROCESSED.inc()
-                    
+
                 except Exception as e:
                     print(f"Error processing event: {e}")
-                    
+
         finally:
             self.running = False
             self.consumer.close()

@@ -10,6 +10,8 @@ env:
   PYTHON_VERSION: "3.12"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/anomaly-detection
+  # Opt into Node.js 24 now to avoid deprecation warnings
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   # ────────────────────────────────────────────────────────────
@@ -19,16 +21,16 @@ jobs:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
       - name: Install dev dependencies
-        run: pip install ruff==0.4.5 mypy==1.10.0
+        run: pip install "ruff==0.11.0" "mypy==1.10.0"
 
       - name: Run ruff linter
         run: ruff check .
@@ -47,10 +49,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -78,10 +80,10 @@ jobs:
         image: docker:dind
         options: --privileged
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -108,7 +110,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3

@@ -61,7 +61,8 @@ class TestIsolationForestTraining:
         assert version_file.read_text().strip() == "test-v1"
 
     def test_metrics_are_numeric(self, tmp_path, monkeypatch) -> None:
-        import mlflow, mlflow.sklearn
+        import mlflow
+        import mlflow.sklearn
         monkeypatch.setattr(mlflow, "set_tracking_uri", lambda *a, **kw: None)
         monkeypatch.setattr(mlflow, "set_experiment", lambda *a, **kw: None)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, events, anomalies, alerts, model, websocket
+from app.api.v1 import alerts, anomalies, auth, events, model, websocket
 
 api_router = APIRouter()
 

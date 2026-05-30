@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Tuple
 
 import joblib
 import numpy as np
@@ -17,7 +16,7 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-_instance: "InferenceEngine | None" = None
+_instance: InferenceEngine | None = None
 
 
 class InferenceEngine:
@@ -36,7 +35,7 @@ class InferenceEngine:
         self._load_models()
 
     @classmethod
-    def get_instance(cls) -> "InferenceEngine":
+    def get_instance(cls) -> InferenceEngine:
         global _instance
         if _instance is None:
             _instance = cls()
@@ -58,7 +57,7 @@ class InferenceEngine:
                 path=str(model_path),
             )
 
-    async def predict(self, features: np.ndarray) -> Tuple[float, str]:
+    async def predict(self, features: np.ndarray) -> tuple[float, str]:
         """
         Run inference on a feature vector.
         Returns (anomaly_score 0.0–1.0, model_version).

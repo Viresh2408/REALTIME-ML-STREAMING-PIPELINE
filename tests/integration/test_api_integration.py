@@ -6,10 +6,8 @@ pytest 8.x + pytest-asyncio 0.23.7
 from __future__ import annotations
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from testcontainers.postgres import PostgresContainer
-
 
 TIMESCALE_IMAGE = "timescale/timescaledb:2.15.3-pg16"
 

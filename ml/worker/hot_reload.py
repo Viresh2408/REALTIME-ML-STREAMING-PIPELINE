@@ -26,10 +26,10 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 import structlog
-from confluent_kafka import Consumer, KafkaException
+from confluent_kafka import Consumer
 
 try:
     from ml.features.pipeline import FeaturePipeline
@@ -191,7 +191,7 @@ class ModelReloadHandler:
             return
 
         # Accept both "version" and "model_version" keys
-        version: Optional[str] = payload.get("version") or payload.get("model_version")
+        version: str | None = payload.get("version") or payload.get("model_version")
         if not version:
             logger.warning(
                 "hot_reload.missing_version_field",

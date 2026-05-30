@@ -10,17 +10,17 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.auth import get_current_user, check_admin, check_viewer
+from app.api.v1.auth import check_admin, check_viewer
 from app.core.database import get_db_session
 from app.schemas.auth import TokenData
 from app.schemas.events import (
     AnomalyEventOut,
-    IngestEventIn,
-    IngestEventResponse,
     BatchEventsIn,
     BatchIngestEventResponse,
-    LabelEventIn,
     EventLabelOut,
+    IngestEventIn,
+    IngestEventResponse,
+    LabelEventIn,
 )
 from app.services.event_service import EventService
 

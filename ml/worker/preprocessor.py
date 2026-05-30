@@ -24,11 +24,11 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import boto3
 import numpy as np
 import pandas as pd
-import boto3
 import structlog
 
 try:
@@ -43,7 +43,7 @@ logger = structlog.get_logger(__name__)
 # Fallback feature set — used ONLY when MinIO returns no pipeline artifact.
 # Matches Section 5, Table 4 (all 5 categories concatenated).
 # ──────────────────────────────────────────────────────────────────────────────
-_FALLBACK_FEATURES: List[str] = [
+_FALLBACK_FEATURES: list[str] = [
     # Network (CICIDS)
     "packet_length", "flow_duration", "fwd_packets/s", "bwd_packets/s", "flag_counts",
     # Financial
@@ -56,13 +56,13 @@ _FALLBACK_FEATURES: List[str] = [
     "rolling_mean_5m", "rolling_std_5m", "deviation_from_mean",
 ]
 
-_FALLBACK_SKEWED: List[str] = [
+_FALLBACK_SKEWED: list[str] = [
     "packet_length", "flow_duration",
     "disk_io_bytes", "net_rx_bytes",
     "volume",
 ]
 
-_BOOTSTRAP_MOCK_ROW: Dict[str, float] = {f: 0.0 for f in _FALLBACK_FEATURES}
+_BOOTSTRAP_MOCK_ROW: dict[str, float] = dict.fromkeys(_FALLBACK_FEATURES, 0.0)
 
 
 class EventPreprocessor:
@@ -200,7 +200,7 @@ class EventPreprocessor:
 
     # ── Core preprocessing (hot path) ─────────────────────────────────────────
 
-    def preprocess(self, raw_event_dict: Dict[str, Any]) -> np.ndarray:
+    def preprocess(self, raw_event_dict: dict[str, Any]) -> np.ndarray:
         """
         Transform a raw event dictionary to a (1, n_features) float64 array.
 
@@ -219,9 +219,9 @@ class EventPreprocessor:
             n = len(self.pipeline.features) if self.pipeline.features else len(_FALLBACK_FEATURES)
             return np.zeros((1, n), dtype=np.float64)
 
-        features_dict: Dict[str, Any] = raw_event_dict.get("features", {})
-        feature_names: List[str] = self.pipeline.features
-        skewed: List[str] = getattr(self.pipeline, "skewed_features", [])
+        features_dict: dict[str, Any] = raw_event_dict.get("features", {})
+        feature_names: list[str] = self.pipeline.features
+        skewed: list[str] = getattr(self.pipeline, "skewed_features", [])
         mean: np.ndarray = self.pipeline.scaler.mean_
         scale: np.ndarray = self.pipeline.scaler.scale_
 
@@ -254,7 +254,7 @@ class EventPreprocessor:
         idx: int,
         mean: np.ndarray,
         scale: np.ndarray,
-        skewed: List[str],
+        skewed: list[str],
     ) -> float:
         """
         Coerce a single raw feature value to a scaled float64.

@@ -6,8 +6,8 @@ from __future__ import annotations
 import asyncio
 import json
 import random
-from datetime import datetime, timezone
-from typing import Any, Dict, Set
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -21,7 +21,7 @@ class ConnectionManager:
     """Tracks active WebSocket clients partitioned by subscription channel."""
 
     def __init__(self) -> None:
-        self._active_connections: Dict[str, Set[WebSocket]] = {
+        self._active_connections: dict[str, set[WebSocket]] = {
             "events": set(),
             "alerts": set(),
             "metrics": set(),
@@ -33,7 +33,7 @@ class ConnectionManager:
         if channel not in self._active_connections:
             self._active_connections[channel] = set()
         self._active_connections[channel].add(ws)
-        
+
         logger.info(
             "WebSocket client subscribed",
             channel=channel,
@@ -78,8 +78,9 @@ class ConnectionManager:
     async def _broadcast_system_metrics(self) -> None:
         """Periodic background worker calculating and pushing live health metrics every 5s."""
         logger.info("Starting live WebSocket metrics broadcasting worker")
-        from app.core.database import async_session_factory
         from sqlalchemy import text
+
+        from app.core.database import async_session_factory
 
         try:
             while True:
@@ -102,7 +103,7 @@ class ConnectionManager:
 
                         # Anomaly rate over last 5m
                         rate_sql = text("""
-                            SELECT 
+                            SELECT
                                 COALESCE(
                                     100.0 * SUM(CASE WHEN is_anomaly THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0),
                                     0.0
@@ -135,7 +136,7 @@ class ConnectionManager:
                         "anomaly_rate_percent": round(anomaly_rate, 2),
                         "consumer_lag": consumer_lag,
                     },
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
 
                 await self.broadcast(payload, "metrics")

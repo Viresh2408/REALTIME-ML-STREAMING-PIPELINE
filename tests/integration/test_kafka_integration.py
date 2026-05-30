@@ -8,10 +8,9 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
-
 
 try:
     from testcontainers.kafka import KafkaContainer

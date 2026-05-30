@@ -1,29 +1,30 @@
+import os
+from io import BytesIO
+
+import boto3
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
-import os
-import boto3
-from typing import List
 from sklearn.preprocessing import StandardScaler
-from io import BytesIO
+
 
 class FeaturePipeline:
     def __init__(self) -> None:
         # Implementing ALL features from dataset_and_model.docx Section 5 for Network (CICIDS)
-        self.features: List[str] = [
+        self.features: list[str] = [
             "packet_length",
             "flow_duration",
             "fwd_packets/s",
             "bwd_packets/s",
             "flag_counts"
         ]
-        
+
         # Features requiring log1p transformation for skewness
-        self.skewed_features: List[str] = [
+        self.skewed_features: list[str] = [
             "packet_length",
             "flow_duration"
         ]
-        
+
         self.scaler = StandardScaler()
         self.is_fitted: bool = False
 
@@ -33,19 +34,19 @@ class FeaturePipeline:
         for feature in self.features:
             if feature not in df.columns:
                 df[feature] = 0.0
-                
+
         df_copy = df[self.features].copy()
-        
+
         # Handle infinite and missing values
         df_copy.replace([np.inf, -np.inf], np.nan, inplace=True)
         df_copy.fillna(0, inplace=True)
-        
+
         # Apply log1p to skewed features
         for col in self.skewed_features:
             if col in df_copy.columns:
                 # Ensure no negative values before log1p
                 df_copy[col] = np.log1p(np.maximum(df_copy[col], 0))
-                
+
         return df_copy
 
     def fit(self, df: pd.DataFrame) -> None:
@@ -65,24 +66,24 @@ class FeaturePipeline:
         """Saves the pipeline state (scaler + features list) to MinIO using joblib."""
         if not self.is_fitted:
             raise ValueError("Cannot save unfitted pipeline.")
-        
+
         buffer = BytesIO()
         joblib.dump({"scaler": self.scaler, "features": self.features}, buffer)
         buffer.seek(0)
-        
+
         s3 = boto3.client(
             "s3",
             endpoint_url=f"http://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}",
             aws_access_key_id=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
             aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123")
         )
-        
+
         # Ensure bucket exists
         try:
             s3.head_bucket(Bucket=bucket_name)
         except Exception:
             s3.create_bucket(Bucket=bucket_name)
-            
+
         s3.upload_fileobj(buffer, bucket_name, object_name)
         print(f"Pipeline saved to s3://{bucket_name}/{object_name}")
 
@@ -97,7 +98,7 @@ class FeaturePipeline:
         buffer = BytesIO()
         s3.download_fileobj(bucket_name, object_name, buffer)
         buffer.seek(0)
-        
+
         data = joblib.load(buffer)
         self.scaler = data["scaler"]
         self.features = data["features"]

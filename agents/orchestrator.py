@@ -1,13 +1,18 @@
-import sys
 import os
+import sys
+
 # Ensure project root is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.env_loader import load_env
+
 load_env()
 
 from typing import Literal
-from langgraph.graph import StateGraph, START, END
+
+from langgraph.graph import END, START, StateGraph
+
 from agents.state import AgentState
+
 
 def ingest_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "ingest": "success"}, "retry_count": 0}
@@ -46,7 +51,7 @@ def score_router(state: AgentState) -> Literal["end", "notify_node", "escalate_n
 def build_graph():
     """Builds and compiles the Orchestrator DAG."""
     workflow = StateGraph(AgentState)
-    
+
     # Add all nodes
     workflow.add_node("ingest", ingest_node)
     workflow.add_node("inference", inference_node)
@@ -56,37 +61,37 @@ def build_graph():
     workflow.add_node("escalate_node", escalate_node)
     workflow.add_node("retrain_check", retrain_check_node)
     workflow.add_node("error", error_node)
-    
+
     # Define primary edges
     workflow.add_edge(START, "ingest")
     workflow.add_edge("ingest", "inference")
     workflow.add_edge("inference", "write")
     workflow.add_edge("write", "alert")
-    
+
     # Define conditional routing from alert
     workflow.add_conditional_edges("alert", score_router, {
         "end": "retrain_check",
         "notify_node": "notify_node",
         "escalate_node": "escalate_node"
     })
-    
+
     workflow.add_edge("notify_node", "retrain_check")
     workflow.add_edge("escalate_node", "retrain_check")
     workflow.add_edge("retrain_check", END)
-    
+
     # Compile graph
     return workflow.compile()
 
 graph = build_graph()
 
 if __name__ == "__main__":
+    import os
     import subprocess
     import sys
     import time
-    import os
-    
+
     print("Starting Orchestrator and all Agent subprocesses...")
-    
+
     # List of agent modules to start
     agents = [
         "agents.inference_agent",
@@ -98,13 +103,13 @@ if __name__ == "__main__":
         "agents.retraining_agent",
         "agents.producer_agent" # Starts last as it generates data
     ]
-    
+
     # Ensure subprocesses can import the agents, features, and models modules correctly
     env = os.environ.copy()
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     ml_root = os.path.join(project_root, "ml")
     env["PYTHONPATH"] = f"{project_root}{os.pathsep}{ml_root}"
-    
+
     processes = []
     try:
         for agent_module in agents:
@@ -112,7 +117,7 @@ if __name__ == "__main__":
             p = subprocess.Popen([sys.executable, "-m", agent_module], env=env)
             processes.append(p)
             time.sleep(1) # Give each agent a second to initialize
-            
+
         print("All agents started. Press Ctrl+C to stop.")
         for p in processes:
             p.wait()

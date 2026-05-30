@@ -6,11 +6,12 @@ Uses Redis sorted sets (zset) with transaction pipelines for atomic operations.
 from __future__ import annotations
 
 import time
+
 import structlog
+from app.core.redis_client import redis_pool
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from app.core.redis_client import redis_pool
 
 logger = structlog.get_logger(__name__)
 

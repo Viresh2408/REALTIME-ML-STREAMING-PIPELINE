@@ -11,13 +11,13 @@ import asyncio
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
 from confluent_kafka import Consumer, KafkaException
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from agents.shared.state import AgentState
 
@@ -96,7 +96,7 @@ class TimescaleDBWriterWorker:
                         ts_raw = ts_raw[:-1] + "+00:00"
                     event_time = datetime.fromisoformat(ts_raw)
                 else:
-                    event_time = datetime.now(tz=timezone.utc)
+                    event_time = datetime.now(tz=UTC)
 
                 await session.execute(
                     INSERT_SQL,
@@ -108,7 +108,7 @@ class TimescaleDBWriterWorker:
                         "anomaly_score": float(event.get("anomaly_score", 0.0)),
                         "is_anomaly": bool(event.get("is_anomaly", False)),
                         "model_version": event.get("model_version", "unknown"),
-                        "processed_at": datetime.now(tz=timezone.utc),
+                        "processed_at": datetime.now(tz=UTC),
                     },
                 )
                 await session.commit()

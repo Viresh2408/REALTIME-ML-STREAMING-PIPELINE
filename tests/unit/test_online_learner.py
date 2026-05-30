@@ -43,8 +43,9 @@ class TestOnlineAnomalyDetector:
 
     def test_normal_events_score_lower_than_anomalies(self, tmp_path) -> None:
         """After warm-up, anomalous events should score higher on average."""
-        from ml.training.online_learner import OnlineAnomalyDetector
         import random
+
+        from ml.training.online_learner import OnlineAnomalyDetector
         detector = OnlineAnomalyDetector(
             artifact_path=str(tmp_path), window_size=100
         )

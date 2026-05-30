@@ -5,11 +5,9 @@ Architecture: Section 5 — always-on heartbeat, route decisions,
 """
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Literal
 
 import structlog
-from langchain_anthropic import ChatAnthropic
 from langgraph.graph import END, StateGraph
 
 from agents.shared.state import AgentState
@@ -31,9 +29,9 @@ def build_orchestrator_graph() -> Any:
 
     Edges include conditional routing and retry cycles.
     """
-    from agents.producer.agent import producer_node
-    from agents.ml_inference.agent import ml_inference_node
     from agents.alert.agent import alert_node
+    from agents.ml_inference.agent import ml_inference_node
+    from agents.producer.agent import producer_node
 
     workflow = StateGraph(AgentState)
 

@@ -4,8 +4,7 @@ Anomalies schemas — Pydantic v2
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -37,4 +36,4 @@ class HeatmapOut(BaseModel):
     resolution: str = Field(..., description="Bucket resolution, e.g. 1h, 5m")
     start: datetime = Field(..., description="Start range boundary")
     end: datetime = Field(..., description="End range boundary")
-    data: List[HeatmapItem] = Field(..., description="Bucket list")
+    data: list[HeatmapItem] = Field(..., description="Bucket list")

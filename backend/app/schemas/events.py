@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -29,25 +29,25 @@ class IngestEventIn(BaseModel):
         description="Origin system or user ID",
         examples=["sensor-42", "api-gateway-us-east-1"],
     )
-    feature_vector: List[float] = Field(
+    feature_vector: list[float] = Field(
         ...,
         min_length=1,
         max_length=1024,
         description="Numeric feature array passed to the ML model",
         examples=[[0.12, -0.45, 1.23, 0.87, -0.33]],
     )
-    timestamp: Optional[datetime] = Field(
+    timestamp: datetime | None = Field(
         default=None,
         description="Event occurrence time (UTC). Defaults to server time if omitted.",
     )
-    metadata: Optional[dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Optional arbitrary metadata attached to the event",
     )
 
     @field_validator("feature_vector")
     @classmethod
-    def validate_feature_vector(cls, v: List[float]) -> List[float]:
+    def validate_feature_vector(cls, v: list[float]) -> list[float]:
         import math
         for val in v:
             if math.isnan(val) or math.isinf(val):
@@ -58,7 +58,7 @@ class IngestEventIn(BaseModel):
 class BatchEventsIn(BaseModel):
     """Request body for batch event ingestion (up to 1000 events)."""
 
-    events: List[IngestEventIn] = Field(
+    events: list[IngestEventIn] = Field(
         ...,
         min_length=1,
         max_length=1000,
@@ -76,7 +76,7 @@ class IngestEventResponse(BaseModel):
 class BatchIngestEventResponse(BaseModel):
     """Response after batch events are queued to Kafka."""
 
-    event_ids: List[str] = Field(..., description="List of generated unique event IDs")
+    event_ids: list[str] = Field(..., description="List of generated unique event IDs")
     status: str = Field(default="queued", description="Ingestion status")
     count: int = Field(..., description="Number of events successfully queued")
 
@@ -87,7 +87,7 @@ class AnomalyEventOut(BaseModel):
     event_id: UUID = Field(..., description="Unique event identifier")
     event_time: datetime = Field(..., description="Event occurrence time")
     source_id: str = Field(..., description="Origin system or user ID")
-    feature_vector: List[float] = Field(..., description="Numeric features passed to ML model")
+    feature_vector: list[float] = Field(..., description="Numeric features passed to ML model")
     anomaly_score: float = Field(..., ge=0.0, le=1.0, description="Model anomaly score")
     is_anomaly: bool = Field(..., description="Threshold-applied classification")
     model_version: str = Field(..., description="ML model version used for scoring")
@@ -101,7 +101,7 @@ class LabelEventIn(BaseModel):
 
     label: LabelEnum = Field(..., description="Ground-truth feedback label: TP, FP, TN, FN")
     analyst_id: str = Field(..., description="ID of the analyst submitting feedback")
-    note: Optional[str] = Field(default=None, description="Optional annotations regarding the label decision")
+    note: str | None = Field(default=None, description="Optional annotations regarding the label decision")
 
 
 class EventLabelOut(BaseModel):
@@ -111,7 +111,7 @@ class EventLabelOut(BaseModel):
     event_id: UUID
     label: LabelEnum
     analyst_id: str
-    note: Optional[str]
+    note: str | None
     labeled_at: datetime
 
     model_config = {"from_attributes": True}

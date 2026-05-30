@@ -5,14 +5,12 @@ Used as a lightweight complement to IsolationForest for concept-drift adaptation
 """
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
-from typing import Any
 
 import joblib
 import structlog
-from river import anomaly, preprocessing, compose
+from river import anomaly, compose, preprocessing
 
 logger = structlog.get_logger(__name__)
 

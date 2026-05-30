@@ -14,8 +14,8 @@ Connects to TimescaleDB and verifies:
 Run: python verify_timescaledb.py
 """
 import asyncio
-import sys
 import os
+import sys
 
 # Allow running from project root or script directory
 sys.path.insert(0, os.path.dirname(__file__))
@@ -151,7 +151,7 @@ async def verify(conn: asyncpg.Connection) -> dict:
     if missing:
         print(f"\n  ✗ MISSING indexes: {missing}")
     else:
-        print(f"\n  ✓ All 3 required indexes present")
+        print("\n  ✓ All 3 required indexes present")
     results["indexes_ok"] = not bool(missing)
 
     # ── 8. Roles ──────────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ async def verify(conn: asyncpg.Connection) -> dict:
         print(f"  {'─'*12} {'─'*6} {'─'*10} {'─'*10} {'─'*12} {'─'*12}")
         for r in sample:
             pct = round(r['anomalies'] / r['total'] * 100, 1)
-            print(f"  {r['source_id']:<12} {r['total']:>6} {r['anomalies']:>7} ({pct:>4}%) {r['avg_score']:>10} {str(r['oldest']):>12} {str(r['newest']):>12}")
+            print(f"  {r['source_id']:<12} {r['total']:>6} {r['anomalies']:>7} ({pct:>4}%) {r['avg_score']:>10} {r['oldest']!s:>12} {r['newest']!s:>12}")
 
     return results
 

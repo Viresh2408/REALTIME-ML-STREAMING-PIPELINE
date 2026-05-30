@@ -1,16 +1,17 @@
 import os
 import time
-import pandas as pd
-from typing import Dict, Any
+from typing import Any
 
+import pandas as pd
 from features.pipeline import FeaturePipeline
 from models.isolation_forest import AnomalyDetector
+
 
 class InferenceEngine:
     def __init__(self, version: str = "latest") -> None:
         self.pipeline = FeaturePipeline()
         self.model = AnomalyDetector()
-        
+
         # Resolve 'latest' dynamically by listing objects in MinIO
         if version == "latest":
             try:
@@ -35,7 +36,7 @@ class InferenceEngine:
             except Exception as e:
                 print(f"Error resolving latest model version from MinIO: {e}")
                 version = "default"
-            
+
         self.reload_model(version)
 
     def reload_model(self, version: str) -> None:
@@ -50,26 +51,26 @@ class InferenceEngine:
             # Fallback for initial boot when no models exist yet
             pass
 
-    def infer(self, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def infer(self, event_dict: dict[str, Any]) -> dict[str, Any]:
         """
         Runs inference on an incoming event dictionary within < 5ms.
         """
         start_time = time.time()
-        
+
         raw_features = event_dict.get("features", {})
-        
+
         # Create a single-row DataFrame
         df = pd.DataFrame([raw_features])
-        
+
         # Transform
         try:
             X = self.pipeline.transform(df)
-            
+
             # Predict
             pred_result = self.model.predict(X)
             score = pred_result["score"]
             is_anomaly = pred_result["is_anomaly"]
-            
+
         except Exception as e:
             print(f"Inference error: {e}")
             score = 0.0
@@ -87,9 +88,9 @@ class InferenceEngine:
             "model_version": "isolation_forest_v1",
             "processed_at": int(time.time() * 1000)
         }
-        
+
         latency_ms = (time.time() - start_time) * 1000
         if latency_ms > 5.0:
             print(f"Warning: Inference took {latency_ms:.2f}ms (target < 5ms)")
-            
+
         return scored_event

@@ -4,7 +4,7 @@ Pydantic v2 Settings — loaded from environment / .env file
 """
 from __future__ import annotations
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

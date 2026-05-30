@@ -1,5 +1,7 @@
 import os
+
 from confluent_kafka.admin import AdminClient, NewTopic
+
 
 def create_topics():
     # Kafka bootstrap servers

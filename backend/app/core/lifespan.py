@@ -3,20 +3,20 @@ Application Lifespan — startup/shutdown event handlers
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 import structlog
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.core.redis_client import redis_pool
 from app.core.kafka import kafka_producer_manager
+from app.core.redis_client import redis_pool
 
 try:
-    from database.connection import db_manager, init_raw_pool, close_raw_pool
+    from database.connection import close_raw_pool, db_manager, init_raw_pool
 except ModuleNotFoundError:
-    from backend.database.connection import db_manager, init_raw_pool, close_raw_pool
+    from backend.database.connection import close_raw_pool, db_manager, init_raw_pool
 
 logger = structlog.get_logger(__name__)
 

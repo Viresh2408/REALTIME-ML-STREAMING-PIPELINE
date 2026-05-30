@@ -25,9 +25,9 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator
-from typing import Optional
 
 import asyncpg
+from app.core.database import Base
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -35,8 +35,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-
-from app.core.database import Base
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +73,8 @@ class DatabaseSessionManager:
     """
 
     def __init__(self) -> None:
-        self._engine: Optional[AsyncEngine] = None
-        self._session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+        self._engine: AsyncEngine | None = None
+        self._session_factory: async_sessionmaker[AsyncSession] | None = None
 
     # ── Initialisation ────────────────────────────────────────────────────
     def init(
@@ -267,7 +265,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Low-level asyncpg pool (bypass SQLAlchemy for COPY / TimescaleDB-specific ops)
 # ─────────────────────────────────────────────────────────────────────────────
-_raw_pool: Optional[asyncpg.Pool] = None  # type: ignore[type-arg]
+_raw_pool: asyncpg.Pool | None = None  # type: ignore[type-arg]
 
 
 async def init_raw_pool(database_dsn: str) -> None:
@@ -353,6 +351,6 @@ def _redact_url(url: str) -> str:
             if parsed.port:
                 netloc = f"{netloc}:{parsed.port}"
             return urlunparse(parsed._replace(netloc=netloc))
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return "<redacted>"

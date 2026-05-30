@@ -1,11 +1,10 @@
 import os
-import uuid
-import httpx
-from typing import Optional, List, Dict, Any
+from typing import Any
 
+import httpx
 from fastapi import FastAPI
-from mcp_fastapi import create_mcp_server
 from mcp.server import Server
+from mcp_fastapi import create_mcp_server
 
 app = FastAPI(title="model-management-mcp")
 
@@ -14,7 +13,7 @@ server = Server("model-management-mcp")
 BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://fastapi-backend:8000/api/v1")
 
 @server.tool()
-async def get_model_status() -> Dict[str, Any]:
+async def get_model_status() -> dict[str, Any]:
     """Get current model version, load time, and inference latency."""
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{BACKEND_API_URL}/model/status")
@@ -22,7 +21,7 @@ async def get_model_status() -> Dict[str, Any]:
         return response.json()
 
 @server.tool()
-async def trigger_retraining(reason: str, force: bool = False) -> Dict[str, Any]:
+async def trigger_retraining(reason: str, force: bool = False) -> dict[str, Any]:
     """Kick off model retraining job immediately."""
     async with httpx.AsyncClient() as client:
         response = await client.post(
@@ -33,7 +32,7 @@ async def trigger_retraining(reason: str, force: bool = False) -> Dict[str, Any]
         return response.json()
 
 @server.tool()
-async def get_retraining_status(job_id: str) -> Dict[str, Any]:
+async def get_retraining_status(job_id: str) -> dict[str, Any]:
     """Check status of a running retraining job."""
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{BACKEND_API_URL}/model/retrain/{job_id}")
@@ -41,7 +40,7 @@ async def get_retraining_status(job_id: str) -> Dict[str, Any]:
         return response.json()
 
 @server.tool()
-async def rollback_model(version: str, reason: str) -> Dict[str, Any]:
+async def rollback_model(version: str, reason: str) -> dict[str, Any]:
     """Revert to a previous model version."""
     async with httpx.AsyncClient() as client:
         response = await client.post(
@@ -52,7 +51,7 @@ async def rollback_model(version: str, reason: str) -> Dict[str, Any]:
         return response.json()
 
 @server.tool()
-async def get_model_metrics(version: Optional[str] = None) -> Dict[str, Any]:
+async def get_model_metrics(version: str | None = None) -> dict[str, Any]:
     """Get Precision, recall, F1 for a model version."""
     async with httpx.AsyncClient() as client:
         params = {"version": version} if version else {}
@@ -61,7 +60,7 @@ async def get_model_metrics(version: Optional[str] = None) -> Dict[str, Any]:
         return response.json()
 
 @server.tool()
-async def list_model_versions(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+async def list_model_versions(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
     """All available model versions with their metrics."""
     async with httpx.AsyncClient() as client:
         response = await client.get(

@@ -29,12 +29,12 @@ import sys
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # ── deps check ────────────────────────────────────────────────────────────────
 try:
-    from confluent_kafka import Consumer, KafkaException, Producer, TopicPartition
     import requests
+    from confluent_kafka import Consumer, KafkaException, Producer, TopicPartition
 except ImportError as e:
     print(f"[FATAL] Missing dependency: {e}")
     print("  pip install confluent-kafka requests")
@@ -64,7 +64,7 @@ class VerifyResult:
     passed: bool
     detail: str
     duration_s: float = 0.0
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ def _now_ms() -> int:
     return int(time.time() * 1_000)
 
 
-def _make_event(i: int) -> Dict[str, Any]:
+def _make_event(i: int) -> dict[str, Any]:
     """Build a realistic raw event dict matching the raw_event schema."""
     import random
     rng = random.Random(i)
@@ -111,14 +111,14 @@ def _make_event(i: int) -> Dict[str, Any]:
     }
 
 
-def _parse_prometheus_histogram(text: str, metric_name: str) -> Optional[Dict[str, float]]:
+def _parse_prometheus_histogram(text: str, metric_name: str) -> dict[str, float] | None:
     """
     Parse a prometheus text exposition for a histogram metric.
     Returns dict: {'count': N, 'sum': S, 'buckets': {le: count, ...}}
     """
-    buckets: Dict[float, float] = {}
-    total_count: Optional[float] = None
-    total_sum: Optional[float] = None
+    buckets: dict[float, float] = {}
+    total_count: float | None = None
+    total_sum: float | None = None
 
     for line in text.splitlines():
         line = line.strip()
@@ -141,8 +141,8 @@ def _parse_prometheus_histogram(text: str, metric_name: str) -> Optional[Dict[st
 
 
 def _percentile_from_histogram(
-    buckets: Dict[float, float], total_count: float, pct: float
-) -> Optional[float]:
+    buckets: dict[float, float], total_count: float, pct: float
+) -> float | None:
     """
     Linear interpolation within histogram buckets to estimate a percentile.
     pct is in [0, 100].
@@ -226,13 +226,13 @@ def check_topic_exists(bootstrap: str, topic: str) -> VerifyResult:
 
 def produce_test_events(
     bootstrap: str, topic: str, n: int
-) -> Tuple[VerifyResult, List[str]]:
+) -> tuple[VerifyResult, list[str]]:
     """Returns (result, list_of_produced_event_ids)."""
     t0 = time.perf_counter()
     name = f"Produce {n:,} events → {topic}"
 
-    delivered: List[str] = []
-    errors: List[str] = []
+    delivered: list[str] = []
+    errors: list[str] = []
 
     def _on_delivery(err, msg):
         if err:
@@ -296,7 +296,7 @@ def produce_test_events(
 # Check 2 — Consume scored-events and verify count within timeout
 # ─────────────────────────────────────────────────────────────────────────────
 
-def get_topic_watermarks(bootstrap: str, topic: str) -> List[TopicPartition]:
+def get_topic_watermarks(bootstrap: str, topic: str) -> list[TopicPartition]:
     """Retrieve the current high watermark offsets for all partitions of a topic."""
     c = Consumer({
         "bootstrap.servers": bootstrap,
@@ -323,14 +323,14 @@ def consume_scored_events(
     scored_topic: str,
     expected_count: int,
     timeout_s: float,
-    start_offsets: Optional[List[TopicPartition]] = None,
+    start_offsets: list[TopicPartition] | None = None,
 ) -> VerifyResult:
     t0 = time.perf_counter()
     name = f"Consume {expected_count:,} scored events within {timeout_s}s"
 
-    scored_ids: List[str] = []
+    scored_ids: list[str] = []
     anomaly_count = 0
-    first_latency_ms: Optional[float] = None
+    first_latency_ms: float | None = None
 
     # Start consuming from the end-of-topic snapshot taken just before producing
     # Use a fresh group-id to always read from now (not replay old messages)
@@ -524,7 +524,7 @@ def check_events_processed_counter(metrics_url: str, expected: int) -> VerifyRes
 # Report renderer
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _render_report(results: List[VerifyResult]) -> bool:
+def _render_report(results: list[VerifyResult]) -> bool:
     W = 80
     total = len(results)
     passed = sum(1 for r in results if r.passed)
@@ -593,14 +593,14 @@ def main() -> int:
     print(f"  Metrics: {METRICS_URL}")
     print(f"{'═'*80}")
 
-    results: List[VerifyResult] = []
+    results: list[VerifyResult] = []
 
     # ── Phase 0: Infrastructure readiness ─────────────────────────────────────
     print("\n[PHASE 0] Infrastructure readiness checks...")
     results.append(check_kafka_connectivity(BOOTSTRAP))
     if not results[-1].passed:
-        print(f"  ❌ Cannot connect to Kafka — aborting (is docker-compose up?)")
-        return _render_report(results) and 0 or 1
+        print("  ❌ Cannot connect to Kafka — aborting (is docker-compose up?)")
+        return (_render_report(results) and 0) or 1
 
     results.append(check_topic_exists(BOOTSTRAP, RAW_TOPIC))
     results.append(check_topic_exists(BOOTSTRAP, SCORED_TOPIC))
@@ -614,8 +614,8 @@ def main() -> int:
     produce_result, produced_ids = produce_test_events(BOOTSTRAP, RAW_TOPIC, NUM_EVENTS)
     results.append(produce_result)
     if not produce_result.passed:
-        print(f"  ❌ Production failed — skipping consume check")
-        return _render_report(results) and 0 or 1
+        print("  ❌ Production failed — skipping consume check")
+        return (_render_report(results) and 0) or 1
 
     # ── Phase 2: Consume scored-events ────────────────────────────────────────
     print("\n[PHASE 2] Verifying scored-events output...")

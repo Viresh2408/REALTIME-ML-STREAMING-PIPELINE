@@ -1,9 +1,11 @@
 import asyncio
 import os
+
 from confluent_kafka import Producer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
-from confluent_kafka.serialization import SerializationContext, MessageField
+from confluent_kafka.serialization import MessageField, SerializationContext
+
 
 class AsyncKafkaProducer:
     def __init__(self):
@@ -55,9 +57,9 @@ class AsyncKafkaProducer:
     async def produce_raw_event(self, event_data: dict):
         """Async method to produce a RawEvent."""
         serializer = self._get_raw_event_serializer()
-        
+
         loop = asyncio.get_event_loop()
-        
+
         def _produce():
             self.producer.produce(
                 topic="raw-events",
@@ -66,15 +68,15 @@ class AsyncKafkaProducer:
                 on_delivery=self._delivery_report
             )
             self.producer.poll(0)
-            
+
         await loop.run_in_executor(None, _produce)
 
     async def produce_alert(self, alert_data: dict):
         """Async method to produce an AlertEvent."""
         serializer = self._get_alert_serializer()
-        
+
         loop = asyncio.get_event_loop()
-        
+
         def _produce():
             self.producer.produce(
                 topic="alerts",
@@ -83,7 +85,7 @@ class AsyncKafkaProducer:
                 on_delivery=self._delivery_report
             )
             self.producer.poll(0)
-            
+
         await loop.run_in_executor(None, _produce)
 
     def flush(self):

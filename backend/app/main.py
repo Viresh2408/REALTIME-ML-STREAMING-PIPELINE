@@ -5,10 +5,10 @@ Real-Time Anomaly Detection & Recommendation System
 from __future__ import annotations
 
 import time
-from typing import Dict, Any
+from typing import Any
 
 import structlog
-from fastapi import FastAPI, APIRouter, Depends, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
 from sqlalchemy import text
@@ -18,10 +18,13 @@ from app.api.v1.websocket import router as ws_router
 from app.core.config import settings
 from app.core.lifespan import lifespan
 from app.middleware.rate_limit import RateLimitMiddleware
+
 try:
     from database.connection import db_manager
 except ModuleNotFoundError:
     from backend.database.connection import db_manager
+from datetime import UTC
+
 from app.core.redis_client import redis_pool
 
 logger = structlog.get_logger(__name__)
@@ -81,9 +84,9 @@ async def health_detailed() -> dict[str, Any]:
     Detailed system health probe checking database, caching, and stream infrastructures.
     Reports connectivity latency and operational status.
     """
-    results: Dict[str, Any] = {
+    results: dict[str, Any] = {
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "services": {},
     }
 
@@ -133,4 +136,4 @@ async def health_detailed() -> dict[str, Any]:
     return results
 
 
-from datetime import datetime, timezone
+from datetime import datetime

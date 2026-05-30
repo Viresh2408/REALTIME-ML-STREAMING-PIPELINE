@@ -1,4 +1,5 @@
-from typing import TypedDict, Optional, Dict, Any
+from typing import Any, TypedDict
+
 
 class AgentState(TypedDict):
     """
@@ -10,5 +11,5 @@ class AgentState(TypedDict):
     severity: str
     retry_count: int
     escalated: bool
-    agent_results: Dict[str, Any]
-    error: Optional[str]
+    agent_results: dict[str, Any]
+    error: str | None
