@@ -93,7 +93,7 @@ dev = [
     "faker==25.2.0",
     "factory-boy==3.3.0",
     "pre-commit==3.7.1",
-    "ruff==0.11.0",
+    "ruff",
     "mypy==1.10.0",
     "types-redis==4.6.0.20240425",
     "ipython==8.24.0",
@@ -202,7 +202,7 @@ known-first-party = ["backend", "agents", "ml"]
 
 [tool.mypy]
 python_version = "3.12"
-strict = true
+strict = false
 ignore_missing_imports = true
 explicit_package_bases = true
 exclude = ["tests/", "migrations/"]

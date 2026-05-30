@@ -128,7 +128,7 @@ def _safe_uuid(raw: Any) -> str:
 
 def _ts_to_datetime(raw_ts: Any) -> datetime:
     """Convert an epoch-millisecond timestamp (int/float) to a UTC datetime."""
-    if isinstance(raw_ts, (int, float)):
+    if isinstance(raw_ts, int | float):
         return datetime.fromtimestamp(raw_ts / 1_000.0, tz=UTC)
     return datetime.now(tz=UTC)
 
