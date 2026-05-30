@@ -14,11 +14,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+import bcrypt
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.core.redis_client import redis_pool
@@ -28,26 +28,38 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _hash_password(password: str) -> str:
+    """Hash a plaintext password with bcrypt."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+
+def _verify_password(plain: str, hashed: str) -> bool:
+    """Verify a plaintext password against a bcrypt hash."""
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/token")
 
 # Predefined user database with hashed passwords
+# Passwords are hashed once at module load using bcrypt directly
+# (avoids passlib 1.7.4 incompatibility with bcrypt >= 4.0)
 _PREDEFINED_USERS = {
     "admin@example.com": {
         "email": "admin@example.com",
-        "hashed_password": pwd_context.hash("admin123"),
+        "hashed_password": _hash_password("admin123"),
         "role": UserRole.ADMIN,
         "disabled": False,
     },
     "analyst@example.com": {
         "email": "analyst@example.com",
-        "hashed_password": pwd_context.hash("analyst123"),
+        "hashed_password": _hash_password("analyst123"),
         "role": UserRole.ANALYST,
         "disabled": False,
     },
     "viewer@example.com": {
         "email": "viewer@example.com",
-        "hashed_password": pwd_context.hash("viewer123"),
+        "hashed_password": _hash_password("viewer123"),
         "role": UserRole.VIEWER,
         "disabled": False,
     },
@@ -55,7 +67,7 @@ _PREDEFINED_USERS = {
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return _verify_password(plain, hashed)
 
 
 def create_token(
