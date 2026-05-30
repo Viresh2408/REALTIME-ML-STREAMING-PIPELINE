@@ -37,9 +37,7 @@ if str(_BACKEND_DIR) not in sys.path:
 _CI_ENV = {
     "DATABASE_URL": "postgresql+asyncpg://test_user:test_pw@localhost:5432/test_db",
     "TIMESCALE_PASSWORD": "test_pw",
-    "JWT_SECRET_KEY": os.environ.get(
-        "JWT_SECRET_KEY", "ci-test-secret-key-minimum-32-chars-here"
-    ),
+    "JWT_SECRET_KEY": os.environ.get("JWT_SECRET_KEY", "ci-test-secret-key-minimum-32-chars-here"),
     "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", "sk-ant-test-key"),
     "TESTING": "true",
 }
