@@ -65,7 +65,8 @@ class TestTimescaleDBSchema:
                     event_time      TIMESTAMPTZ     NOT NULL,
                     source_id       TEXT            NOT NULL,
                     feature_vector  JSONB           NOT NULL,
-                    anomaly_score   FLOAT8          NOT NULL,
+                    anomaly_score   FLOAT8          NOT NULL
+                                    CHECK (anomaly_score >= 0.0 AND anomaly_score <= 1.0),
                     is_anomaly      BOOLEAN         NOT NULL DEFAULT false,
                     model_version   TEXT            NOT NULL,
                     processed_at    TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
