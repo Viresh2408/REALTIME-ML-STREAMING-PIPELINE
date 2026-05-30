@@ -25,10 +25,10 @@ def download_cicids2017() -> None:
         response = requests.get(url, stream=True)
         response.raise_for_status()
 
-        total_size = int(response.headers.get('content-length', 0))
+        total_size = int(response.headers.get("content-length", 0))
         downloaded_size = 0
 
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
@@ -41,6 +41,7 @@ def download_cicids2017() -> None:
         print(f"\nSuccessfully downloaded to {output_path}")
     except Exception as e:
         print(f"\nError downloading dataset: {e}")
+
 
 if __name__ == "__main__":
     download_cicids2017()

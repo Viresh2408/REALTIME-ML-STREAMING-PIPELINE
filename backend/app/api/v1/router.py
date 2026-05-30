@@ -1,6 +1,7 @@
 """
 API v1 Router — aggregates all endpoint modules
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter

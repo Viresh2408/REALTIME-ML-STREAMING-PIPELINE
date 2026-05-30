@@ -3,6 +3,7 @@ Locust Load Test — Real-Time Anomaly Detection API
 locust 2.28 | techstack.docx Section 7 (Dev & CI)
 Run: locust -f tests/load/locustfile.py --host=http://localhost:8000
 """
+
 from __future__ import annotations
 
 import random

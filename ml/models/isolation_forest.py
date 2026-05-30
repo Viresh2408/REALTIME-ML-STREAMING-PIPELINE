@@ -11,13 +11,11 @@ from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_sco
 
 sklearn.set_config(assume_finite=True)
 
+
 class AnomalyDetector:
     def __init__(self) -> None:
         self.model = IsolationForest(
-            n_estimators=200,
-            contamination=0.05,
-            random_state=42,
-            n_jobs=-1
+            n_estimators=200, contamination=0.05, random_state=42, n_jobs=-1
         )
         self.is_trained: bool = False
 
@@ -41,11 +39,11 @@ class AnomalyDetector:
 
         # In scikit-learn's IsolationForest, predict(X) is defined exactly as decision_function(X) < 0
         # By doing this directly, we avoid executing all 200 trees twice!
-        is_anomaly = (raw_scores < 0.0)
+        is_anomaly = raw_scores < 0.0
 
         return {
             "score": float(scores[0]) if len(scores) == 1 else scores.tolist(),
-            "is_anomaly": bool(is_anomaly[0]) if len(is_anomaly) == 1 else is_anomaly.tolist()
+            "is_anomaly": bool(is_anomaly[0]) if len(is_anomaly) == 1 else is_anomaly.tolist(),
         }
 
     def evaluate(self, X_val: np.ndarray, y_val: np.ndarray) -> dict[str, float]:
@@ -62,7 +60,7 @@ class AnomalyDetector:
             "precision": float(precision_score(y_val, is_anomaly, zero_division=0)),
             "recall": float(recall_score(y_val, is_anomaly, zero_division=0)),
             "f1": float(f1_score(y_val, is_anomaly, zero_division=0)),
-            "roc_auc": float(roc_auc_score(y_val, scores)) if len(np.unique(y_val)) > 1 else 0.0
+            "roc_auc": float(roc_auc_score(y_val, scores)) if len(np.unique(y_val)) > 1 else 0.0,
         }
 
     def save_to_minio(self, version: str) -> None:
@@ -81,7 +79,7 @@ class AnomalyDetector:
             "s3",
             endpoint_url=f"http://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}",
             aws_access_key_id=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123")
+            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123"),
         )
 
         try:
@@ -101,7 +99,7 @@ class AnomalyDetector:
             "s3",
             endpoint_url=f"http://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}",
             aws_access_key_id=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123")
+            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123"),
         )
 
         buffer = BytesIO()

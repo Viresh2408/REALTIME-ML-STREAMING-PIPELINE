@@ -4,6 +4,7 @@ Architecture: Section 5 — Reactive, triggered by alerts topic
 Output: Email / Slack / PagerDuty webhook call
 Uses: LangChain 0.2 + Claude claude-sonnet-4-20250514 for human-readable alert summaries
 """
+
 from __future__ import annotations
 
 import os
@@ -63,23 +64,29 @@ async def _send_slack(summary: str, alert: dict[str, Any]) -> bool:
         logger.warning("SLACK_WEBHOOK_URL not configured — skipping Slack notification")
         return False
 
-    severity_emoji = {
-        "low": "🟡", "medium": "🟠", "high": "🔴", "critical": "🚨"
-    }.get(alert.get("severity", "low"), "⚠️")
+    severity_emoji = {"low": "🟡", "medium": "🟠", "high": "🔴", "critical": "🚨"}.get(
+        alert.get("severity", "low"), "⚠️"
+    )
 
     payload = {
         "text": f"{severity_emoji} *Anomaly Alert* [{alert.get('severity', '').upper()}]",
         "blocks": [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": f"*{severity_emoji} Anomaly Detected*\n{summary}"},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*{severity_emoji} Anomaly Detected*\n{summary}",
+                },
             },
             {
                 "type": "context",
                 "elements": [
-                    {"type": "mrkdwn", "text": f"Score: `{alert.get('anomaly_score', 0):.4f}` | "
-                                                f"Source: `{alert.get('source_id')}` | "
-                                                f"Model: `{alert.get('model_version')}`"}
+                    {
+                        "type": "mrkdwn",
+                        "text": f"Score: `{alert.get('anomaly_score', 0):.4f}` | "
+                        f"Source: `{alert.get('source_id')}` | "
+                        f"Model: `{alert.get('model_version')}`",
+                    }
                 ],
             },
         ],
@@ -120,9 +127,7 @@ async def _send_pagerduty(summary: str, alert: dict[str, Any]) -> bool:
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                "https://events.pagerduty.com/v2/enqueue", json=payload
-            )
+            resp = await client.post("https://events.pagerduty.com/v2/enqueue", json=payload)
             return resp.status_code in {200, 202}
     except Exception as exc:
         logger.error("PagerDuty notification failed", error=str(exc))

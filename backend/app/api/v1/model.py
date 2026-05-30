@@ -2,6 +2,7 @@
 Model Management endpoints
 Interfaces with retraining pipeline log execution, rolls back models via Kafka, and queries performance metrics.
 """
+
 from __future__ import annotations
 
 import json
@@ -66,6 +67,7 @@ async def get_model_status(
     active_version = "v1.2.0-prod"
     try:
         from ml.inference.engine import InferenceEngine
+
         engine = InferenceEngine.get_instance()
         if engine and engine._model_version != "unloaded":
             active_version = engine._model_version
@@ -96,6 +98,7 @@ async def list_model_versions(
     active_version = "v1.2.0-prod"
     try:
         from ml.inference.engine import InferenceEngine
+
         engine = InferenceEngine.get_instance()
         if engine and engine._model_version != "unloaded":
             active_version = engine._model_version

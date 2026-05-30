@@ -1,6 +1,7 @@
 """
 Unit tests — Producer Agent and event generation
 """
+
 from __future__ import annotations
 
 import math
@@ -23,6 +24,7 @@ class TestSyntheticEventGeneration:
 
     def test_event_id_is_valid_uuid(self) -> None:
         import uuid
+
         event = generate_synthetic_event()
         uuid.UUID(event["event_id"])  # raises ValueError if invalid
 
@@ -62,9 +64,7 @@ class TestSyntheticEventGeneration:
 
     def test_high_anomaly_features_have_larger_values(self) -> None:
         """Injected anomalies should have feature values sampled from loc=5, not loc=0."""
-        anomaly_events = [
-            generate_synthetic_event(anomaly_probability=1.0) for _ in range(100)
-        ]
+        anomaly_events = [generate_synthetic_event(anomaly_probability=1.0) for _ in range(100)]
         mean_abs = sum(
             sum(abs(v) for v in e["feature_vector"]) / len(e["feature_vector"])
             for e in anomaly_events
@@ -79,6 +79,7 @@ class TestAlertSeverityClassification:
 
     def test_severity_classification(self) -> None:
         from agents.alert.agent import _classify_severity
+
         assert _classify_severity(0.99) == "critical"
         assert _classify_severity(0.95) == "critical"
         assert _classify_severity(0.90) == "high"

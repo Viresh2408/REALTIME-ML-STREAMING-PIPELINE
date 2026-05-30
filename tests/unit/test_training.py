@@ -1,6 +1,7 @@
 """
 Unit tests — IsolationForest training pipeline
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -21,6 +22,7 @@ class TestIsolationForestTraining:
         """Training should produce a joblib artifact and a version file."""
         # Monkeypatch MLflow to avoid needing a tracking server
         import mlflow
+
         monkeypatch.setattr(mlflow, "set_tracking_uri", lambda *a, **kw: None)
         monkeypatch.setattr(mlflow, "set_experiment", lambda *a, **kw: None)
 
@@ -29,6 +31,7 @@ class TestIsolationForestTraining:
                 run_id = "fake-run-id"
 
         from contextlib import contextmanager
+
         @contextmanager
         def _fake_start_run(*a, **kw):
             yield _FakeRun()
@@ -38,6 +41,7 @@ class TestIsolationForestTraining:
         monkeypatch.setattr(mlflow, "log_metrics", lambda *a, **kw: None)
 
         import mlflow.sklearn
+
         monkeypatch.setattr(mlflow.sklearn, "log_model", lambda *a, **kw: None)
 
         from ml.training.train_isolation_forest import train_isolation_forest
@@ -63,10 +67,12 @@ class TestIsolationForestTraining:
     def test_metrics_are_numeric(self, tmp_path, monkeypatch) -> None:
         import mlflow
         import mlflow.sklearn
+
         monkeypatch.setattr(mlflow, "set_tracking_uri", lambda *a, **kw: None)
         monkeypatch.setattr(mlflow, "set_experiment", lambda *a, **kw: None)
 
         from contextlib import contextmanager
+
         class _FakeRun:
             class info:
                 run_id = "fake"
@@ -81,6 +87,7 @@ class TestIsolationForestTraining:
         monkeypatch.setattr(mlflow.sklearn, "log_model", lambda *a, **kw: None)
 
         from ml.training.train_isolation_forest import train_isolation_forest
+
         data = self._make_synthetic_data()
         metrics = train_isolation_forest(data=data, artifact_path=str(tmp_path))
 

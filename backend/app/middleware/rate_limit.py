@@ -3,6 +3,7 @@ Redis sliding window rate-limiting middleware
 Restricts traffic to 100 requests/second per identifier (API key, Bearer token subject, or IP).
 Uses Redis sorted sets (zset) with transaction pipelines for atomic operations.
 """
+
 from __future__ import annotations
 
 import time
@@ -14,6 +15,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 logger = structlog.get_logger(__name__)
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
@@ -31,9 +33,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.limit = limit
         self.window_seconds = window_seconds
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         # Bypass rate limiting for health check and metrics endpoints
         path = request.url.path
         if path in ("/health", "/metrics", "/api/v1/health") or path.startswith("/ws"):

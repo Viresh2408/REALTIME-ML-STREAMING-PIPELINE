@@ -4,6 +4,7 @@ Supports: IsolationForest (scikit-learn 1.5) + Autoencoder (PyTorch 2.3)
 Serialization: joblib 1.4
 Online learning: River 0.21
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -69,9 +70,7 @@ class InferenceEngine:
                 score = float(np.random.uniform(0, 1))
                 return score, "dummy-v0"
 
-            raw_score = self._isolation_forest.decision_function(
-                features.reshape(1, -1)
-            )[0]
+            raw_score = self._isolation_forest.decision_function(features.reshape(1, -1))[0]
             # Convert: decision_function returns negative for anomalies.
             # Normalise to [0, 1] where higher = more anomalous.
             score = float(1.0 - (raw_score - (-0.5)) / (0.5 - (-0.5)))

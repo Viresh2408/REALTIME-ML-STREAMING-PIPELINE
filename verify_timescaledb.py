@@ -13,6 +13,7 @@ Connects to TimescaleDB and verifies:
 -------------------------------------------------------------------------
 Run: python verify_timescaledb.py
 """
+
 import asyncio
 import os
 import sys
@@ -53,7 +54,7 @@ async def verify(conn: asyncpg.Connection) -> dict:
     """)
     if tables:
         print(f"  {'table_name':<40} {'table_type'}")
-        print(f"  {'-'*40} {'-'*20}")
+        print(f"  {'-' * 40} {'-' * 20}")
         for r in tables:
             print(f"  {r['table_name']:<40} {r['table_type']}")
     else:
@@ -66,7 +67,7 @@ async def verify(conn: asyncpg.Connection) -> dict:
     status = "✓ PASS" if count == 1000 else f"✗ FAIL — expected 1000, got {count}"
     print(f"  COUNT = {count}   {status}")
     results["row_count"] = count
-    results["row_count_pass"] = (count == 1000)
+    results["row_count_pass"] = count == 1000
 
     # ── 3. Hypertable confirmation ────────────────────────────────────────────
     banner("3. Hypertable check")
@@ -108,7 +109,9 @@ async def verify(conn: asyncpg.Connection) -> dict:
     """)
     if cp:
         for r in cp:
-            print(f"  [PASS] Compression on {r['hypertable_schema']}.{r['hypertable_name']}  compress_after={r['compress_after']}")
+            print(
+                f"  [PASS] Compression on {r['hypertable_schema']}.{r['hypertable_name']}  compress_after={r['compress_after']}"
+            )
     else:
         print("  [FAIL] No compression policy found")
     results["compression"] = bool(cp)
@@ -124,7 +127,9 @@ async def verify(conn: asyncpg.Connection) -> dict:
     """)
     if rp:
         for r in rp:
-            print(f"  ✓ Retention on {r['hypertable_schema']}.{r['hypertable_name']}  drop_after={r['drop_after']}")
+            print(
+                f"  ✓ Retention on {r['hypertable_schema']}.{r['hypertable_name']}  drop_after={r['drop_after']}"
+            )
     else:
         print("  ✗ No retention policy found")
     results["retention"] = bool(rp)
@@ -157,15 +162,18 @@ async def verify(conn: asyncpg.Connection) -> dict:
     # ── 8. Roles ──────────────────────────────────────────────────────────────
     banner("8. Role check (grafana_ro, worker_rw, api_rw)")
     required_roles = {"grafana_ro", "worker_rw", "api_rw"}
-    roles = await conn.fetch("""
+    roles = await conn.fetch(
+        """
         SELECT rolname FROM pg_roles
         WHERE rolname = ANY($1);
-    """, list(required_roles))
+    """,
+        list(required_roles),
+    )
     found_roles = {r["rolname"] for r in roles}
     for role in sorted(required_roles):
         tick = "✓" if role in found_roles else "✗"
         print(f"  {tick} {role}")
-    results["roles_ok"] = (found_roles >= required_roles)
+    results["roles_ok"] = found_roles >= required_roles
 
     # ── 9. Sample data sanity check ───────────────────────────────────────────
     banner("9. Sample data distribution (source_ids, anomaly rate, score range)")
@@ -182,11 +190,15 @@ async def verify(conn: asyncpg.Connection) -> dict:
         ORDER BY source_id;
     """)
     if sample:
-        print(f"  {'source_id':<12} {'total':>6} {'anomalies':>10} {'avg_score':>10} {'oldest':>12} {'newest':>12}")
-        print(f"  {'─'*12} {'─'*6} {'─'*10} {'─'*10} {'─'*12} {'─'*12}")
+        print(
+            f"  {'source_id':<12} {'total':>6} {'anomalies':>10} {'avg_score':>10} {'oldest':>12} {'newest':>12}"
+        )
+        print(f"  {'─' * 12} {'─' * 6} {'─' * 10} {'─' * 10} {'─' * 12} {'─' * 12}")
         for r in sample:
-            pct = round(r['anomalies'] / r['total'] * 100, 1)
-            print(f"  {r['source_id']:<12} {r['total']:>6} {r['anomalies']:>7} ({pct:>4}%) {r['avg_score']:>10} {r['oldest']!s:>12} {r['newest']!s:>12}")
+            pct = round(r["anomalies"] / r["total"] * 100, 1)
+            print(
+                f"  {r['source_id']:<12} {r['total']:>6} {r['anomalies']:>7} ({pct:>4}%) {r['avg_score']:>10} {r['oldest']!s:>12} {r['newest']!s:>12}"
+            )
 
     return results
 
@@ -213,14 +225,17 @@ async def main() -> None:
     # ── Summary ───────────────────────────────────────────────────────────────
     banner("SUMMARY")
     checks = [
-        ("anomaly_events table exists",  "anomaly_events" in results.get("tables", [])),
-        ("hourly_anomaly_stats exists",  "hourly_anomaly_stats" in results.get("continuous_aggregates", []) or
-                                          "hourly_anomaly_stats" in results.get("tables", [])),
-        ("hypertable registered",        bool(results.get("hypertables"))),
-        ("row count == 1000",            results.get("row_count_pass", False)),
-        ("all 3 indexes present",        results.get("indexes_ok", False)),
-        ("retention policy set",         results.get("retention", False)),
-        ("all 3 roles exist",            results.get("roles_ok", False)),
+        ("anomaly_events table exists", "anomaly_events" in results.get("tables", [])),
+        (
+            "hourly_anomaly_stats exists",
+            "hourly_anomaly_stats" in results.get("continuous_aggregates", [])
+            or "hourly_anomaly_stats" in results.get("tables", []),
+        ),
+        ("hypertable registered", bool(results.get("hypertables"))),
+        ("row count == 1000", results.get("row_count_pass", False)),
+        ("all 3 indexes present", results.get("indexes_ok", False)),
+        ("retention policy set", results.get("retention", False)),
+        ("all 3 roles exist", results.get("roles_ok", False)),
     ]
     all_pass = True
     for label, passed in checks:

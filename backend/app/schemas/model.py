@@ -1,6 +1,7 @@
 """
 Model management schemas — Pydantic v2
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,7 +15,9 @@ class ModelStatusOut(BaseModel):
 
     model_version: str = Field(..., description="Active model identifier")
     load_time: datetime = Field(..., description="When the current model was loaded")
-    avg_inference_latency_ms: float = Field(..., description="Average inference latency in milliseconds")
+    avg_inference_latency_ms: float = Field(
+        ..., description="Average inference latency in milliseconds"
+    )
     total_inferences: int = Field(..., description="Cumulative number of predictions made")
 
 

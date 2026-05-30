@@ -2,6 +2,7 @@
 FastAPI Application Entry Point
 Real-Time Anomaly Detection & Recommendation System
 """
+
 from __future__ import annotations
 
 import time
@@ -116,6 +117,7 @@ async def health_detailed() -> dict[str, Any]:
     t_start = time.time()
     try:
         from app.core.kafka import kafka_producer_manager
+
         producer = kafka_producer_manager.producer
         # Check metadata to verify connectivity
         producer.list_topics(timeout=1.0)
@@ -127,9 +129,7 @@ async def health_detailed() -> dict[str, Any]:
 
     if results["status"] == "degraded":
         # Check if all critical services are down, make it unhealthy
-        unhealthy_count = sum(
-            1 for s in results["services"].values() if s["status"] == "unhealthy"
-        )
+        unhealthy_count = sum(1 for s in results["services"].values() if s["status"] == "unhealthy")
         if unhealthy_count >= 2:
             results["status"] = "unhealthy"
 

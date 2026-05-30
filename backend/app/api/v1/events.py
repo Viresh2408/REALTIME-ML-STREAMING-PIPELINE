@@ -1,6 +1,7 @@
 """
 Events endpoints — Ingest raw events, query scored anomaly events, apply ground-truth feedback
 """
+
 from __future__ import annotations
 
 from datetime import datetime

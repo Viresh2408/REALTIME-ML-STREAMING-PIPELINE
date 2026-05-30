@@ -2,6 +2,7 @@
 Unit tests for ML Inference Engine
 pytest 8.x + pytest-asyncio 0.23.7
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -51,16 +52,17 @@ class TestInferenceEngine:
 class TestAnomalyThreshold:
     """Test threshold application logic."""
 
-    @pytest.mark.parametrize("score,threshold,expected", [
-        (0.8, 0.7, True),
-        (0.5, 0.7, False),
-        (0.7, 0.7, False),   # Equal is not above threshold
-        (0.71, 0.7, True),
-        (0.0, 0.7, False),
-        (1.0, 0.7, True),
-    ])
-    def test_threshold_logic(
-        self, score: float, threshold: float, expected: bool
-    ) -> None:
+    @pytest.mark.parametrize(
+        "score,threshold,expected",
+        [
+            (0.8, 0.7, True),
+            (0.5, 0.7, False),
+            (0.7, 0.7, False),  # Equal is not above threshold
+            (0.71, 0.7, True),
+            (0.0, 0.7, False),
+            (1.0, 0.7, True),
+        ],
+    )
+    def test_threshold_logic(self, score: float, threshold: float, expected: bool) -> None:
         is_anomaly = score > threshold
         assert is_anomaly == expected

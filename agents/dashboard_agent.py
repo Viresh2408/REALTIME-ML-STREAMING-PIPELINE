@@ -16,17 +16,20 @@ load_env()
 
 app = FastAPI(title="Dashboard Agent Websocket")
 
+
 class DashboardAgent:
     def __init__(self) -> None:
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
         self.topic = os.getenv("KAFKA_SCORED_EVENTS_TOPIC", "scored-events")
 
-        self.consumer = Consumer({
-            'bootstrap.servers': bootstrap_servers,
-            'group.id': os.getenv("KAFKA_DASHBOARD_GROUP_ID", "dashboard-agent-group"),
-            'auto.offset.reset': 'latest',
-            'enable.auto.commit': False
-        })
+        self.consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap_servers,
+                "group.id": os.getenv("KAFKA_DASHBOARD_GROUP_ID", "dashboard-agent-group"),
+                "auto.offset.reset": "latest",
+                "enable.auto.commit": False,
+            }
+        )
 
         self.grafana_url = os.getenv("GRAFANA_URL", "http://localhost:3000")
         self.grafana_token = os.getenv("GRAFANA_SERVICE_ACCOUNT_TOKEN", "")
@@ -54,18 +57,20 @@ class DashboardAgent:
 
         headers = {
             "Authorization": f"Bearer {self.grafana_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         payload = {
             "time": event["event_time"],
             "text": f"CRITICAL Anomaly (Score: {event['anomaly_score']})",
-            "tags": ["critical", "anomaly", event.get("source_id", "unknown")]
+            "tags": ["critical", "anomaly", event.get("source_id", "unknown")],
         }
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(f"{self.grafana_url}/api/annotations", headers=headers, json=payload) as resp:
+                async with session.post(
+                    f"{self.grafana_url}/api/annotations", headers=headers, json=payload
+                ) as resp:
                     if resp.status >= 400:
                         print(f"Failed to create Grafana annotation: {resp.status}")
         except Exception as e:
@@ -87,7 +92,7 @@ class DashboardAgent:
                     val = msg.value()
                     if val is None:
                         continue
-                    event_str = val.decode('utf-8')
+                    event_str = val.decode("utf-8")
                     event = json.loads(event_str)
 
                     # 1. Broadcast to all active websocket clients
@@ -107,16 +112,19 @@ class DashboardAgent:
     def stop(self) -> None:
         self.running = False
 
+
 agent = DashboardAgent()
+
 
 @app.websocket("/ws/events")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     await agent.connect_client(websocket)
     try:
         while True:
-            await websocket.receive_text() # keep alive
+            await websocket.receive_text()  # keep alive
     except WebSocketDisconnect:
         agent.disconnect_client(websocket)
+
 
 async def main() -> None:
     # Run Kafka consumer loop in background
@@ -126,6 +134,7 @@ async def main() -> None:
     config = uvicorn.Config(app, host="0.0.0.0", port=8083)
     server = uvicorn.Server(config)
     await server.serve()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

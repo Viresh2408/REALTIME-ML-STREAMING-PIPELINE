@@ -2,6 +2,7 @@
 Internal endpoints — service-to-service only (not for external clients)
 Covers: model hot-reload signaling, health aggregation
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status

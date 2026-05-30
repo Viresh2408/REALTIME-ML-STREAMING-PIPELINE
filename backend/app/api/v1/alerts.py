@@ -2,6 +2,7 @@
 Alerts management APIs
 Enables alert triage lifecycle: querying, acknowledging, resolving, and setting silencing rules.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -109,6 +110,7 @@ async def get_alert(
 
     # Helper function to match EventService._to_schema
     import json
+
     parsed_events = []
     for row in events:
         fv = row.feature_vector

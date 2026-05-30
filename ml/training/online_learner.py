@@ -3,6 +3,7 @@ Online / Incremental Learning with River 0.21
 Architecture: techstack.docx §3 — Update model in real-time without full retraining
 Used as a lightweight complement to IsolationForest for concept-drift adaptation.
 """
+
 from __future__ import annotations
 
 import os
@@ -101,8 +102,11 @@ class DriftDetector:
     Triggers a retraining signal when the anomaly score distribution shifts.
     """
 
-    def __init__(self, min_instances: int = 500, delta: float = 0.005, threshold: float = 50.0) -> None:
+    def __init__(
+        self, min_instances: int = 500, delta: float = 0.005, threshold: float = 50.0
+    ) -> None:
         from river import drift
+
         self._detector = drift.PageHinkley(
             min_instances=min_instances,
             delta=delta,

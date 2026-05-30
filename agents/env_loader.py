@@ -34,19 +34,27 @@ def load_env():
         bootstrap = bootstrap.replace("kafka:29092", "localhost:9092")
         bootstrap = bootstrap.replace("kafka:9092", "localhost:9092")
         os.environ["KAFKA_BOOTSTRAP_SERVERS"] = bootstrap
-        print(f"Windows host detected. Set KAFKA_BOOTSTRAP_SERVERS to: {os.environ['KAFKA_BOOTSTRAP_SERVERS']}")
+        print(
+            f"Windows host detected. Set KAFKA_BOOTSTRAP_SERVERS to: {os.environ['KAFKA_BOOTSTRAP_SERVERS']}"
+        )
 
         # Adjust DATABASE_URL/url params
         db_url = os.environ.get("DATABASE_URL")
         if db_url:
             db_url = db_url.replace("timescaledb:5432", "localhost:5432")
-            db_url = db_url.replace("anomaly_worker:WorkerPass123!", "worker_rw:WorkerRw_SecurePass2!")
-            db_url = db_url.replace("anomaly_admin:StrongPass123!", "worker_rw:WorkerRw_SecurePass2!")
+            db_url = db_url.replace(
+                "anomaly_worker:WorkerPass123!", "worker_rw:WorkerRw_SecurePass2!"
+            )
+            db_url = db_url.replace(
+                "anomaly_admin:StrongPass123!", "worker_rw:WorkerRw_SecurePass2!"
+            )
             os.environ["DATABASE_URL"] = db_url
             print("Windows host detected. Adjusted DATABASE_URL for worker_rw")
         else:
             # Create DATABASE_URL if it doesn't exist
-            os.environ["DATABASE_URL"] = "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db"
+            os.environ["DATABASE_URL"] = (
+                "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db"
+            )
             print("DATABASE_URL was empty. Created default local connection URL for worker_rw.")
 
         # Adjust MINIO_ENDPOINT

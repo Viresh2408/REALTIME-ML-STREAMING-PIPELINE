@@ -3,6 +3,7 @@ Dashboard Agent — Bridge
 Architecture: Section 5 — scored-events poll → Grafana API annotation + WebSocket push
 Uses: Grafana Live WebSocket, Grafana Annotations REST API
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -79,6 +80,7 @@ class DashboardBridgeWorker:
 
     def __init__(self) -> None:
         from confluent_kafka import Consumer
+
         bootstrap_servers = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
         self._consumer = Consumer(
             {
@@ -105,6 +107,7 @@ class DashboardBridgeWorker:
                     continue
                 if msg.error():
                     from confluent_kafka import KafkaException
+
                     raise KafkaException(msg.error())
                 val = msg.value()
                 if val is None:

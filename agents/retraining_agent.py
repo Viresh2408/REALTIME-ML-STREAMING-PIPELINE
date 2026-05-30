@@ -14,18 +14,21 @@ from agents.env_loader import load_env
 
 load_env()
 
+
 class RetrainingAgent:
     def __init__(self) -> None:
-        self.db_url = os.getenv("DATABASE_URL", "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db")
+        self.db_url = os.getenv(
+            "DATABASE_URL", "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db"
+        )
         if self.db_url.startswith("postgresql+asyncpg://"):
             self.db_url = self.db_url.replace("postgresql+asyncpg://", "postgresql://")
 
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-        self.producer = Producer({'bootstrap.servers': bootstrap_servers})
+        self.producer = Producer({"bootstrap.servers": bootstrap_servers})
         self.update_topic = os.getenv("KAFKA_MODEL_UPDATES_TOPIC", "model-updates")
 
         self.scheduler = AsyncIOScheduler()
-        self.scheduler.add_job(self.run_retraining_job, 'cron', hour=3, minute=0, timezone='UTC')
+        self.scheduler.add_job(self.run_retraining_job, "cron", hour=3, minute=0, timezone="UTC")
 
     async def extract_data(self) -> str:
         """Extracts last 30 days of labelled data to a CSV for retraining."""
@@ -57,7 +60,7 @@ class RetrainingAgent:
             train_script = os.path.join(base_dir, "ml", "train.py")
 
             # Subprocess execution for encapsulated execution
-            proc = await asyncio.create_subprocess_exec('python', train_script)
+            proc = await asyncio.create_subprocess_exec("python", train_script)
             await proc.wait()
 
             if proc.returncode != 0:
@@ -71,13 +74,11 @@ class RetrainingAgent:
             update_msg = {
                 "action": "reload",
                 "version": version,
-                "timestamp": int(datetime.utcnow().timestamp() * 1000)
+                "timestamp": int(datetime.utcnow().timestamp() * 1000),
             }
 
             self.producer.produce(
-                topic=self.update_topic,
-                key="latest",
-                value=json.dumps(update_msg)
+                topic=self.update_topic, key="latest", value=json.dumps(update_msg)
             )
             self.producer.flush()
             print("Successfully published model-update message.")
@@ -92,6 +93,7 @@ class RetrainingAgent:
     def stop(self) -> None:
         self.scheduler.shutdown()
 
+
 async def main():
     agent = RetrainingAgent()
     agent.start()
@@ -100,6 +102,7 @@ async def main():
             await asyncio.sleep(3600)
     except (KeyboardInterrupt, SystemExit):
         agent.stop()
+
 
 if __name__ == "__main__":
     try:

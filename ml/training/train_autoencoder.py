@@ -2,6 +2,7 @@
 Autoencoder Training Script — PyTorch 2.3 + MLflow 2.13
 Complements IsolationForest for high-dimensional feature spaces.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -62,24 +63,30 @@ def train_autoencoder(
 
     tensor = torch.tensor(data_norm, dtype=torch.float32)
     dataset = TensorDataset(tensor)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=False)
+    loader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=False
+    )
 
     n_features = data.shape[1]
-    model = Autoencoder(n_features=n_features, latent_dim=latent_dim, hidden_dims=hidden_dims, dropout=dropout)
+    model = Autoencoder(
+        n_features=n_features, latent_dim=latent_dim, hidden_dims=hidden_dims, dropout=dropout
+    )
     trainer = AutoencoderTrainer(model=model, lr=lr)
 
     with mlflow.start_run(run_name=f"autoencoder_{model_version}") as run:
-        mlflow.log_params({
-            "model_type": "Autoencoder",
-            "n_features": n_features,
-            "n_samples": len(data),
-            "latent_dim": latent_dim,
-            "hidden_dims": str(hidden_dims),
-            "n_epochs": n_epochs,
-            "batch_size": batch_size,
-            "lr": lr,
-            "dropout": dropout,
-        })
+        mlflow.log_params(
+            {
+                "model_type": "Autoencoder",
+                "n_features": n_features,
+                "n_samples": len(data),
+                "latent_dim": latent_dim,
+                "hidden_dims": str(hidden_dims),
+                "n_epochs": n_epochs,
+                "batch_size": batch_size,
+                "lr": lr,
+                "dropout": dropout,
+            }
+        )
 
         best_loss = float("inf")
         for epoch in range(1, n_epochs + 1):
@@ -88,6 +95,7 @@ def train_autoencoder(
                 def __iter__(self_):
                     for (x,) in loader:
                         yield x
+
                 def __len__(self_):
                     return len(loader)
 
@@ -130,6 +138,7 @@ def train_autoencoder(
 
         # Save normalisation stats
         import json
+
         norm_path = out_dir / "autoencoder_normalisation.json"
         norm_path.write_text(json.dumps({"mean": mean.tolist(), "std": std.tolist()}))
 

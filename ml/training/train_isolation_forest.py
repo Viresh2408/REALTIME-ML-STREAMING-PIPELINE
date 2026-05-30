@@ -3,6 +3,7 @@ IsolationForest Model Training Script
 Uses scikit-learn 1.5 + MLflow 2.13 for experiment tracking
 Retraining is scheduled daily via APScheduler (Model Retraining Agent)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,15 +54,17 @@ def train_isolation_forest(
 
     with mlflow.start_run(run_name=f"isolation_forest_{model_version}") as run:
         # Log hyperparameters
-        mlflow.log_params({
-            "model_type": "IsolationForest",
-            "contamination": contamination,
-            "n_estimators": n_estimators,
-            "max_samples": max_samples,
-            "random_state": random_state,
-            "n_features": data.shape[1],
-            "n_samples": data.shape[0],
-        })
+        mlflow.log_params(
+            {
+                "model_type": "IsolationForest",
+                "contamination": contamination,
+                "n_estimators": n_estimators,
+                "max_samples": max_samples,
+                "random_state": random_state,
+                "n_features": data.shape[1],
+                "n_samples": data.shape[0],
+            }
+        )
 
         # Train
         model = IsolationForest(

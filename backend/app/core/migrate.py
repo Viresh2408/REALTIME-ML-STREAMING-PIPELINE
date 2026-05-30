@@ -3,6 +3,7 @@ Database migration runner
 Called by: `make migrate` → docker compose exec fastapi-backend python -m backend.app.core.migrate
 Applies the TimescaleDB schema from infra/timescaledb/init/ to the connected database.
 """
+
 from __future__ import annotations
 
 import asyncio

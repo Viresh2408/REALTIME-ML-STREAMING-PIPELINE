@@ -24,21 +24,21 @@ def main() -> None:
 
     # Preprocessing labels to binary
     # The CICIDS dataset usually has a column ' Label' (with a leading space)
-    label_col = next((col for col in df.columns if 'label' in col.lower()), None)
+    label_col = next((col for col in df.columns if "label" in col.lower()), None)
 
     if not label_col:
         print("Warning: Label column not found. Generating mock labels for evaluation.")
-        df['Label'] = np.random.choice([0, 1], size=len(df), p=[0.95, 0.05])
+        df["Label"] = np.random.choice([0, 1], size=len(df), p=[0.95, 0.05])
     else:
         # Convert string labels to binary (assuming 'BENIGN' is 0, else 1)
-        df['Label'] = (df[label_col].astype(str).str.strip().str.upper() != 'BENIGN').astype(int)
+        df["Label"] = (df[label_col].astype(str).str.strip().str.upper() != "BENIGN").astype(int)
 
     # 2. Run feature pipeline
     print("Running FeaturePipeline...")
     pipeline = FeaturePipeline()
     pipeline.fit(df)
     X_train = pipeline.transform(df)
-    y_train = df['Label'].values
+    y_train = df["Label"].values
 
     # 3. Train Isolation Forest
     print("Training IsolationForest model...")
@@ -77,6 +77,7 @@ def main() -> None:
 
         mlflow.log_param("model_version", version)
         print("Training and upload complete.")
+
 
 if __name__ == "__main__":
     main()

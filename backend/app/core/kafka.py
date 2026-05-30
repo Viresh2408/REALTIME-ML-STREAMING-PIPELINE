@@ -1,6 +1,7 @@
 """
 Kafka producer manager — lifecycle wrapper for the FastAPI lifespan
 """
+
 from __future__ import annotations
 
 import structlog

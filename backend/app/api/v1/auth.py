@@ -7,6 +7,7 @@ Predefined users:
 - analyst@example.com (role: analyst)
 - viewer@example.com (role: viewer)
 """
+
 from __future__ import annotations
 
 import uuid
@@ -136,14 +137,19 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> Tok
 # ── Role Checks ──────────────────────────────────────────────────────────────
 def check_role(required_roles: list[UserRole]):
     """Utility to enforce specific roles on endpoints."""
-    async def dependency(current_user: Annotated[TokenData, Depends(get_current_user)]) -> TokenData:
+
+    async def dependency(
+        current_user: Annotated[TokenData, Depends(get_current_user)],
+    ) -> TokenData:
         if current_user.role not in required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to access this resource",
             )
         return current_user
+
     return dependency
+
 
 check_admin = check_role([UserRole.ADMIN])
 check_analyst = check_role([UserRole.ADMIN, UserRole.ANALYST])
@@ -152,9 +158,7 @@ check_viewer = check_role([UserRole.ADMIN, UserRole.ANALYST, UserRole.VIEWER])
 
 # ── Auth Endpoints ───────────────────────────────────────────────────────────
 @router.post("/token", response_model=Token)
-async def login_oauth2(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-) -> Token:
+async def login_oauth2(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
     """
     OAuth2 password grant login.
     Returns access_token (1 hour validity) and refresh_token (7 days validity).
@@ -192,9 +196,7 @@ async def refresh_tokens(payload: TokenRefreshRequest) -> Token:
     )
     try:
         decoded = jwt.decode(
-            payload.refresh_token,
-            settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            payload.refresh_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         sub: str | None = decoded.get("sub")
         role: str | None = decoded.get("role")
@@ -236,15 +238,11 @@ async def refresh_tokens(payload: TokenRefreshRequest) -> Token:
 
 
 @router.post("/revoke", status_code=status.HTTP_200_OK)
-async def revoke_token(
-    current_token: Annotated[str, Depends(oauth2_scheme)]
-) -> dict[str, str]:
+async def revoke_token(current_token: Annotated[str, Depends(oauth2_scheme)]) -> dict[str, str]:
     """Logout / revoke the current active access token."""
     try:
         payload = jwt.decode(
-            current_token,
-            settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            current_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti: str | None = payload.get("jti")
         exp: float | None = payload.get("exp")

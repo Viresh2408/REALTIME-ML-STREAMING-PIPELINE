@@ -45,20 +45,38 @@ logger = structlog.get_logger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 _FALLBACK_FEATURES: list[str] = [
     # Network (CICIDS)
-    "packet_length", "flow_duration", "fwd_packets/s", "bwd_packets/s", "flag_counts",
+    "packet_length",
+    "flow_duration",
+    "fwd_packets/s",
+    "bwd_packets/s",
+    "flag_counts",
     # Financial
-    "price", "volume", "bid_ask_spread", "price_return_1m", "volume_z_score",
+    "price",
+    "volume",
+    "bid_ask_spread",
+    "price_return_1m",
+    "volume_z_score",
     # Server metrics
-    "cpu_pct", "mem_pct", "disk_io_bytes", "net_rx_bytes", "error_rate",
+    "cpu_pct",
+    "mem_pct",
+    "disk_io_bytes",
+    "net_rx_bytes",
+    "error_rate",
     # Temporal
-    "hour_of_day", "day_of_week", "is_market_hours",
+    "hour_of_day",
+    "day_of_week",
+    "is_market_hours",
     # Derived
-    "rolling_mean_5m", "rolling_std_5m", "deviation_from_mean",
+    "rolling_mean_5m",
+    "rolling_std_5m",
+    "deviation_from_mean",
 ]
 
 _FALLBACK_SKEWED: list[str] = [
-    "packet_length", "flow_duration",
-    "disk_io_bytes", "net_rx_bytes",
+    "packet_length",
+    "flow_duration",
+    "disk_io_bytes",
+    "net_rx_bytes",
     "volume",
 ]
 
@@ -88,10 +106,10 @@ class EventPreprocessor:
         Falls back to a dummy-fitted pipeline on any error so the worker
         can start immediately and process events (with degraded accuracy).
         """
-        bucket  = os.getenv("MINIO_BUCKET_MODELS", "ml-models")
+        bucket = os.getenv("MINIO_BUCKET_MODELS", "ml-models")
         endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-        ak       = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        sk       = os.getenv("MINIO_SECRET_KEY", "miniopassword123")
+        ak = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+        sk = os.getenv("MINIO_SECRET_KEY", "miniopassword123")
 
         # ── Step 1: resolve "latest" tag to a real version string ─────────────
         resolved_version = version
@@ -156,9 +174,7 @@ class EventPreprocessor:
                 return "default"
 
             # Sort descending by key name (timestamp embedded in filename)
-            latest_key: str = sorted(
-                (obj["Key"] for obj in contents), reverse=True
-            )[0]
+            latest_key: str = sorted((obj["Key"] for obj in contents), reverse=True)[0]
             # Extract version: pipeline/pipeline_<version>.joblib
             ver = latest_key.split("pipeline_", 1)[1].removesuffix(".joblib")
             logger.info("preprocessor.resolved_latest", version=ver)

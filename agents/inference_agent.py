@@ -22,7 +22,9 @@ from agents.env_loader import load_env
 load_env()
 
 # Dynamically load InferenceEngine from ml/inference.py to avoid shadowing conflict
-spec = importlib.util.spec_from_file_location("ml_inference_module", os.path.join(project_root, "ml", "inference.py"))
+spec = importlib.util.spec_from_file_location(
+    "ml_inference_module", os.path.join(project_root, "ml", "inference.py")
+)
 if spec is None or spec.loader is None:
     raise ImportError("Failed to load ml/inference.py spec or loader")
 ml_inference_module = importlib.util.module_from_spec(spec)
@@ -31,9 +33,10 @@ spec.loader.exec_module(ml_inference_module)
 InferenceEngine = ml_inference_module.InferenceEngine
 
 # Prometheus Metrics
-INFERENCE_LATENCY = Histogram('inference_latency_seconds', 'Latency of ML inference')
-EVENTS_PROCESSED = Counter('events_processed_total', 'Total events processed')
-ANOMALIES_DETECTED = Counter('anomalies_detected_total', 'Total anomalies detected')
+INFERENCE_LATENCY = Histogram("inference_latency_seconds", "Latency of ML inference")
+EVENTS_PROCESSED = Counter("events_processed_total", "Total events processed")
+ANOMALIES_DETECTED = Counter("anomalies_detected_total", "Total anomalies detected")
+
 
 class MLInferenceAgent:
     def __init__(self) -> None:
@@ -43,20 +46,24 @@ class MLInferenceAgent:
         self.update_topic = os.getenv("KAFKA_MODEL_UPDATES_TOPIC", "model-updates")
         self.threshold = float(os.getenv("ANOMALY_THRESHOLD", "0.7"))
 
-        self.consumer = Consumer({
-            'bootstrap.servers': bootstrap_servers,
-            'group.id': os.getenv("KAFKA_CONSUMER_GROUP_ID", "ml-inference-group"),
-            'auto.offset.reset': 'earliest',
-            'enable.auto.commit': False
-        })
+        self.consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap_servers,
+                "group.id": os.getenv("KAFKA_CONSUMER_GROUP_ID", "ml-inference-group"),
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": False,
+            }
+        )
 
-        self.update_consumer = Consumer({
-            'bootstrap.servers': bootstrap_servers,
-            'group.id': 'ml-inference-update-group',
-            'auto.offset.reset': 'latest'
-        })
+        self.update_consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap_servers,
+                "group.id": "ml-inference-update-group",
+                "auto.offset.reset": "latest",
+            }
+        )
 
-        self.producer = Producer({'bootstrap.servers': bootstrap_servers})
+        self.producer = Producer({"bootstrap.servers": bootstrap_servers})
         self.engine = InferenceEngine()
         self.running = False
 
@@ -74,7 +81,7 @@ class MLInferenceAgent:
                 continue
 
             try:
-                update_event = json.loads(val.decode('utf-8'))
+                update_event = json.loads(val.decode("utf-8"))
                 version = update_event.get("version", "latest")
                 print(f"Received model update signal for version: {version}")
                 self.engine.reload_model(version)
@@ -110,7 +117,7 @@ class MLInferenceAgent:
                     if val is None:
                         continue
 
-                    event_dict = json.loads(val.decode('utf-8'))
+                    event_dict = json.loads(val.decode("utf-8"))
                     scored_event = self.engine.infer(event_dict)
 
                     # Apply explicit thresholding if required
@@ -124,7 +131,7 @@ class MLInferenceAgent:
                     self.producer.produce(
                         topic=self.scored_topic,
                         key=scored_event["event_id"],
-                        value=json.dumps(scored_event)
+                        value=json.dumps(scored_event),
                     )
                     self.producer.poll(0)
 
@@ -146,6 +153,7 @@ class MLInferenceAgent:
 
     def stop(self) -> None:
         self.running = False
+
 
 if __name__ == "__main__":
     agent = MLInferenceAgent()

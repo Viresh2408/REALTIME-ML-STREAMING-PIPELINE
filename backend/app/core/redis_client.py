@@ -1,6 +1,7 @@
 """
 Redis connection pool — rate limiting + caching (Redis 7.2)
 """
+
 from __future__ import annotations
 
 import structlog

@@ -43,17 +43,17 @@ INFERENCE_LATENCY = Histogram(
     name="inference_latency_seconds",
     documentation="End-to-end inference latency in seconds (preprocess + model.predict)",
     buckets=[
-        0.0005,   # 0.5 ms  — sub-target (ideal IsolationForest path)
-        0.001,    # 1 ms    — SLA target
-        0.002,    # 2 ms
-        0.005,    # 5 ms
-        0.010,    # 10 ms   — soft alert threshold
-        0.020,    # 20 ms
-        0.050,    # 50 ms
-        0.100,    # 100 ms  — hard alert threshold
-        0.200,    # 200 ms
-        0.500,    # 500 ms
-        1.000,    # 1 s     — maximum bucket (overflow captured in +Inf)
+        0.0005,  # 0.5 ms  — sub-target (ideal IsolationForest path)
+        0.001,  # 1 ms    — SLA target
+        0.002,  # 2 ms
+        0.005,  # 5 ms
+        0.010,  # 10 ms   — soft alert threshold
+        0.020,  # 20 ms
+        0.050,  # 50 ms
+        0.100,  # 100 ms  — hard alert threshold
+        0.200,  # 200 ms
+        0.500,  # 500 ms
+        1.000,  # 1 s     — maximum bucket (overflow captured in +Inf)
     ],
 )
 
@@ -101,8 +101,7 @@ for _sev in ("LOW", "MEDIUM", "HIGH", "CRITICAL"):
 MODEL_VERSION_INFO = Gauge(
     name="model_version_info",
     documentation=(
-        "Currently loaded model version. "
-        "Set to 1 for the active version, 0 for inactive versions."
+        "Currently loaded model version. Set to 1 for the active version, 0 for inactive versions."
     ),
     labelnames=["version"],
 )
@@ -122,6 +121,7 @@ CONSUMER_LAG = Gauge(
 # ──────────────────────────────────────────────────────────────────────────────
 # Server startup
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def start_metrics_server(port: int = 8090) -> None:
     """

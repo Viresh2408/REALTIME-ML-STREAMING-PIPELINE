@@ -20,6 +20,7 @@ Pool configuration (backend_requirements.docx §4):
   pool_pre_ping= True — validate connections before use (detects DB restarts)
 ──────────────────────────────────────────────────────────────────────────────
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -43,11 +44,11 @@ logger = logging.getLogger(__name__)
 # Pool constants
 # Source: backend_requirements.docx §3 and §4
 # ─────────────────────────────────────────────────────────────────────────────
-_POOL_MIN_SIZE: int = 10   # always-warm connections (pool_size)
-_POOL_MAX_SIZE: int = 50   # hard cap (pool_size + max_overflow)
-_POOL_OVERFLOW: int = _POOL_MAX_SIZE - _POOL_MIN_SIZE   # = 40
-_POOL_TIMEOUT: int  = 30   # seconds — max wait for a pooled connection
-_POOL_RECYCLE: int  = 3600 # seconds — recycle stale connections hourly
+_POOL_MIN_SIZE: int = 10  # always-warm connections (pool_size)
+_POOL_MAX_SIZE: int = 50  # hard cap (pool_size + max_overflow)
+_POOL_OVERFLOW: int = _POOL_MAX_SIZE - _POOL_MIN_SIZE  # = 40
+_POOL_TIMEOUT: int = 30  # seconds — max wait for a pooled connection
+_POOL_RECYCLE: int = 3600  # seconds — recycle stale connections hourly
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -106,9 +107,7 @@ class DatabaseSessionManager:
             Seconds before a connection is recycled to avoid stale TCP sessions.
         """
         if self._engine is not None:
-            logger.warning(
-                "DatabaseSessionManager.init() called more than once — ignoring."
-            )
+            logger.warning("DatabaseSessionManager.init() called more than once — ignoring.")
             return
 
         logger.info(
@@ -126,14 +125,14 @@ class DatabaseSessionManager:
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
             pool_recycle=pool_recycle,
-            pool_pre_ping=True,         # detect stale connections proactively
+            pool_pre_ping=True,  # detect stale connections proactively
             # ── asyncpg connect_args ──────────────────────────────────────
             connect_args={
                 "server_settings": {
                     "application_name": "anomaly_detection_api",
-                    "jit":             "off",  # disable JIT — faster for OLTP
+                    "jit": "off",  # disable JIT — faster for OLTP
                 },
-                "command_timeout": 60,          # statement timeout (seconds)
+                "command_timeout": 60,  # statement timeout (seconds)
             },
         )
 
@@ -151,9 +150,7 @@ class DatabaseSessionManager:
     async def close(self) -> None:
         """Dispose the engine (drains the pool gracefully)."""
         if self._engine is None:
-            logger.warning(
-                "DatabaseSessionManager.close() called before .init() — no-op."
-            )
+            logger.warning("DatabaseSessionManager.close() called before .init() — no-op.")
             return
         await self._engine.dispose()
         self._engine = None
@@ -176,8 +173,7 @@ class DatabaseSessionManager:
         """
         if self._session_factory is None:
             raise RuntimeError(
-                "DatabaseSessionManager not initialised. "
-                "Call .init(database_url) first."
+                "DatabaseSessionManager not initialised. Call .init(database_url) first."
             )
 
         async with self._session_factory() as session:
@@ -204,8 +200,7 @@ class DatabaseSessionManager:
         """
         if self._engine is None:
             raise RuntimeError(
-                "DatabaseSessionManager not initialised. "
-                "Call .init(database_url) first."
+                "DatabaseSessionManager not initialised. Call .init(database_url) first."
             )
         async with self._engine.begin() as conn:
             yield conn
@@ -289,7 +284,7 @@ async def init_raw_pool(database_dsn: str) -> None:
         command_timeout=60,
         server_settings={
             "application_name": "anomaly_detection_bulk_writer",
-            "jit":             "off",
+            "jit": "off",
         },
     )
     logger.info(
@@ -329,9 +324,7 @@ async def get_raw_connection() -> AsyncIterator[asyncpg.Connection]:  # type: ig
             )
     """
     if _raw_pool is None:
-        raise RuntimeError(
-            "Raw asyncpg pool not initialised. Call init_raw_pool() first."
-        )
+        raise RuntimeError("Raw asyncpg pool not initialised. Call init_raw_pool() first.")
     async with _raw_pool.acquire() as conn:
         yield conn
 
@@ -343,6 +336,7 @@ def _redact_url(url: str) -> str:
     """Return the DSN with the password replaced by ***."""
     try:
         from urllib.parse import urlparse, urlunparse
+
         parsed = urlparse(url)
         if parsed.password:
             netloc = parsed.hostname or ""

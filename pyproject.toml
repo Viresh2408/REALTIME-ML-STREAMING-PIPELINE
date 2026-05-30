@@ -204,6 +204,7 @@ known-first-party = ["backend", "agents", "ml"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+explicit_package_bases = true
 exclude = ["tests/", "migrations/"]
 
 [tool.coverage.run]

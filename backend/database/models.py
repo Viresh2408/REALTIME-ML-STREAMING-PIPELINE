@@ -12,6 +12,7 @@ Tables reflected:
   • anomaly.retrain_jobs          — training and retraining jobs tracking
 ──────────────────────────────────────────────────────────────────────────────
 """
+
 from __future__ import annotations
 
 import uuid
@@ -122,14 +123,14 @@ class AnomalyEvent(AsyncAttrs, Base):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "event_id":       str(self.event_id),
-            "event_time":     self.event_time.isoformat() if self.event_time else None,
-            "source_id":      self.source_id,
+            "event_id": str(self.event_id),
+            "event_time": self.event_time.isoformat() if self.event_time else None,
+            "source_id": self.source_id,
             "feature_vector": self.feature_vector,
-            "anomaly_score":  self.anomaly_score,
-            "is_anomaly":     self.is_anomaly,
-            "model_version":  self.model_version,
-            "processed_at":   self.processed_at.isoformat() if self.processed_at else None,
+            "anomaly_score": self.anomaly_score,
+            "is_anomaly": self.is_anomaly,
+            "model_version": self.model_version,
+            "processed_at": self.processed_at.isoformat() if self.processed_at else None,
         }
 
 
@@ -171,11 +172,11 @@ class HourlyAnomalyStat(AsyncAttrs, Base):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "bucket":       self.bucket.isoformat() if self.bucket else None,
-            "source_id":    self.source_id,
-            "event_count":  self.event_count,
-            "avg_score":    self.avg_score,
-            "max_score":    self.max_score,
+            "bucket": self.bucket.isoformat() if self.bucket else None,
+            "source_id": self.source_id,
+            "event_count": self.event_count,
+            "avg_score": self.avg_score,
+            "max_score": self.max_score,
         }
 
 

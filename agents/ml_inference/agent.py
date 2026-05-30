@@ -5,6 +5,7 @@ Input: raw-events topic (6 partitions, 24h retention)
 Output: anomaly score + label → scored-events topic
 Models: IsolationForest (scikit-learn 1.5) + Autoencoder (PyTorch 2.3)
 """
+
 from __future__ import annotations
 
 import asyncio

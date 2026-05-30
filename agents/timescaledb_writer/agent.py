@@ -5,6 +5,7 @@ Trigger: scored-events Kafka topic consumption
 Output: Hypertable row insert into anomaly.anomaly_events
 Uses: SQLAlchemy 2.0 async + asyncpg 0.29
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -115,7 +116,9 @@ class TimescaleDBWriterWorker:
                 logger.debug("Event written to TimescaleDB", event_id=event.get("event_id"))
             except Exception as exc:
                 await session.rollback()
-                logger.error("Failed to write event", error=str(exc), event_id=event.get("event_id"))
+                logger.error(
+                    "Failed to write event", error=str(exc), event_id=event.get("event_id")
+                )
                 raise
 
     def stop(self) -> None:

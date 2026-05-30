@@ -1,6 +1,7 @@
 """
 WebSocket router — real-time scored event streaming, alert feeds, and live performance metrics
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -99,7 +100,9 @@ class ConnectionManager:
                         """)
                         result = await session.execute(throughput_sql)
                         row = result.fetchone()
-                        events_per_sec = row[0] if row and row[0] is not None else float(random.randint(40, 110))
+                        events_per_sec = (
+                            row[0] if row and row[0] is not None else float(random.randint(40, 110))
+                        )
 
                         # Anomaly rate over last 5m
                         rate_sql = text("""
@@ -113,16 +116,23 @@ class ConnectionManager:
                         """)
                         rate_result = await session.execute(rate_sql)
                         rate_row = rate_result.fetchone()
-                        anomaly_rate = rate_row[0] if rate_row and rate_row[0] is not None else float(random.uniform(1.2, 5.8))
+                        anomaly_rate = (
+                            rate_row[0]
+                            if rate_row and rate_row[0] is not None
+                            else float(random.uniform(1.2, 5.8))
+                        )
                 except Exception as db_exc:
                     # Fallback to telemetry/synthetic mocks if TimescaleDB isn't fully seeded
-                    logger.debug("Database metrics aggregation skipped, using mocks", error=str(db_exc))
+                    logger.debug(
+                        "Database metrics aggregation skipped, using mocks", error=str(db_exc)
+                    )
                     events_per_sec = float(random.randint(80, 120))
                     anomaly_rate = float(random.uniform(2.1, 4.5))
 
                 # Kafka Consumer Lag check (read from Redis populated by health checks or mock)
                 try:
                     from app.core.redis_client import redis_pool
+
                     client = redis_pool.client
                     lag_val = await client.get("metrics:kafka_consumer_lag")
                     consumer_lag = int(lag_val) if lag_val else random.randint(0, 12)

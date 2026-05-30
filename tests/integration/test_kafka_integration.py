@@ -3,6 +3,7 @@ Integration tests — Kafka producer/consumer round-trip
 Uses testcontainers-python 0.12 to spin up a real Kafka broker.
 pytest 8.x + pytest-asyncio 0.23.7
 """
+
 from __future__ import annotations
 
 import json

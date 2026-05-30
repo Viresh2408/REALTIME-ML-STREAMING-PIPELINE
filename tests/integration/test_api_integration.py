@@ -3,6 +3,7 @@ Integration tests — FastAPI backend + TimescaleDB
 Uses testcontainers-python 0.12 to spin up a real TimescaleDB instance.
 pytest 8.x + pytest-asyncio 0.23.7
 """
+
 from __future__ import annotations
 
 import pytest
@@ -34,9 +35,7 @@ class TestHealthEndpoint:
         """GET /health should return 200 with status=ok."""
         from backend.app.main import app
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/health")
 
         assert response.status_code == 200
@@ -49,9 +48,7 @@ class TestHealthEndpoint:
         """GET /openapi.json should return a valid OpenAPI schema."""
         from backend.app.main import app
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/openapi.json")
 
         assert response.status_code == 200
@@ -69,9 +66,7 @@ class TestAnomalyEventsAPI:
         """GET /api/v1/events should return 401 without JWT."""
         from backend.app.main import app
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/api/v1/events")
 
         assert response.status_code in {401, 403, 422}

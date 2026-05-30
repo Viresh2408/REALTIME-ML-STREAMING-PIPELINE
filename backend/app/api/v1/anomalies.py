@@ -2,6 +2,7 @@
 Anomaly Query APIs
 Provides rich querying, stats aggregation, and heatmap generation.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -99,6 +100,7 @@ async def list_anomalies(
     out = []
     for r in rows:
         import json
+
         fv = r.feature_vector
         if isinstance(fv, str):
             fv = json.loads(fv)
@@ -211,10 +213,7 @@ async def get_heatmap(
         ORDER BY time_bucket DESC, source_id ASC
     """)
 
-    result = await db.execute(
-        sql,
-        {"interval": interval_str, "start": start_time, "end": end_time}
-    )
+    result = await db.execute(sql, {"interval": interval_str, "start": start_time, "end": end_time})
     rows = result.fetchall()
 
     heatmap_items = []
@@ -265,6 +264,7 @@ async def get_anomaly(
         )
 
     import json
+
     fv = r.feature_vector
     if isinstance(fv, str):
         fv = json.loads(fv)

@@ -13,23 +13,23 @@ def create_topics():
         "raw-events": {
             "num_partitions": 6,
             "replication_factor": 1,
-            "config": {"retention.ms": "86400000"}  # 24h retention
+            "config": {"retention.ms": "86400000"},  # 24h retention
         },
         "scored-events": {
             "num_partitions": 6,
             "replication_factor": 1,
-            "config": {"retention.ms": "259200000"} # 72h retention
+            "config": {"retention.ms": "259200000"},  # 72h retention
         },
         "alerts": {
             "num_partitions": 3,
             "replication_factor": 1,
-            "config": {"retention.ms": "604800000"} # 7d retention
+            "config": {"retention.ms": "604800000"},  # 7d retention
         },
         "model-updates": {
             "num_partitions": 1,
             "replication_factor": 1,
-            "config": {"retention.ms": "2592000000"} # 30d retention
-        }
+            "config": {"retention.ms": "2592000000"},  # 30d retention
+        },
     }
 
     # Fetch existing topics
@@ -45,7 +45,7 @@ def create_topics():
                 topic_name,
                 num_partitions=spec["num_partitions"],
                 replication_factor=spec["replication_factor"],
-                config=spec["config"]
+                config=spec["config"],
             )
             new_topics.append(new_topic)
 
@@ -63,6 +63,7 @@ def create_topics():
             print(f"Topic '{topic}' created successfully.")
         except Exception as e:
             print(f"Failed to create topic '{topic}': {e}")
+
 
 if __name__ == "__main__":
     create_topics()

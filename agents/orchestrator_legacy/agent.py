@@ -3,6 +3,7 @@ Orchestrator Agent — Supervisor node in the LangGraph DAG
 Architecture: Section 5 — always-on heartbeat, route decisions,
               health checks, fallback coordination
 """
+
 from __future__ import annotations
 
 from typing import Any, Literal

@@ -40,10 +40,10 @@ async def run_tests():
         "features": {
             "packet_length": 1500.0,
             "flow_duration": 45000.0,
-            "bwd_packets/s": 42.0
+            "bwd_packets/s": 42.0,
             # missing: fwd_packets/s, flag_counts
         },
-        "event_time": int(time.time() * 1000)
+        "event_time": int(time.time() * 1000),
     }
 
     print("\n[2] Testing sub-millisecond preprocessing and imputation...")
@@ -78,6 +78,7 @@ async def run_tests():
     assert scored_event["model_version"] == engine.version, "Model version must match!"
     print("✅ Inference complete and output schema validated!")
     print("\n=== ALL ML INFRASTRUCTURE TESTS COMPLETED SUCCESSFULLY ===")
+
 
 if __name__ == "__main__":
     asyncio.run(run_tests())

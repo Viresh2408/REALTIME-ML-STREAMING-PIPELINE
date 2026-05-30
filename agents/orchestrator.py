@@ -15,28 +15,42 @@ from agents.state import AgentState
 
 
 def ingest_node(state: AgentState) -> dict:
-    return {"agent_results": {**state.get("agent_results", {}), "ingest": "success"}, "retry_count": 0}
+    return {
+        "agent_results": {**state.get("agent_results", {}), "ingest": "success"},
+        "retry_count": 0,
+    }
+
 
 def inference_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "inference": "success"}}
 
+
 def write_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "write": "success"}}
+
 
 def alert_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "alert": "success"}}
 
+
 def notify_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "notify": "success"}}
 
+
 def escalate_node(state: AgentState) -> dict:
-    return {"escalated": True, "agent_results": {**state.get("agent_results", {}), "escalate": "success"}}
+    return {
+        "escalated": True,
+        "agent_results": {**state.get("agent_results", {}), "escalate": "success"},
+    }
+
 
 def retrain_check_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "retrain_check": "success"}}
 
+
 def error_node(state: AgentState) -> dict:
     return {"agent_results": {**state.get("agent_results", {}), "error_handled": True}}
+
 
 def score_router(state: AgentState) -> Literal["end", "notify_node", "escalate_node"]:
     """Conditional routing based on severity."""
@@ -47,6 +61,7 @@ def score_router(state: AgentState) -> Literal["end", "notify_node", "escalate_n
         return "notify_node"
     else:  # HIGH or CRITICAL
         return "escalate_node"
+
 
 def build_graph():
     """Builds and compiles the Orchestrator DAG."""
@@ -69,11 +84,11 @@ def build_graph():
     workflow.add_edge("write", "alert")
 
     # Define conditional routing from alert
-    workflow.add_conditional_edges("alert", score_router, {
-        "end": "retrain_check",
-        "notify_node": "notify_node",
-        "escalate_node": "escalate_node"
-    })
+    workflow.add_conditional_edges(
+        "alert",
+        score_router,
+        {"end": "retrain_check", "notify_node": "notify_node", "escalate_node": "escalate_node"},
+    )
 
     workflow.add_edge("notify_node", "retrain_check")
     workflow.add_edge("escalate_node", "retrain_check")
@@ -81,6 +96,7 @@ def build_graph():
 
     # Compile graph
     return workflow.compile()
+
 
 graph = build_graph()
 
@@ -101,7 +117,7 @@ if __name__ == "__main__":
         "agents.dashboard_agent",
         "agents.health_agent",
         "agents.retraining_agent",
-        "agents.producer_agent" # Starts last as it generates data
+        "agents.producer_agent",  # Starts last as it generates data
     ]
 
     # Ensure subprocesses can import the agents, features, and models modules correctly
@@ -116,7 +132,7 @@ if __name__ == "__main__":
             print(f"Starting {agent_module}...")
             p = subprocess.Popen([sys.executable, "-m", agent_module], env=env)
             processes.append(p)
-            time.sleep(1) # Give each agent a second to initialize
+            time.sleep(1)  # Give each agent a second to initialize
 
         print("All agents started. Press Ctrl+C to stop.")
         for p in processes:
@@ -128,4 +144,3 @@ if __name__ == "__main__":
         for p in processes:
             p.wait()
         print("All agents stopped.")
-

@@ -2,6 +2,7 @@
 SQLAlchemy 2.0 ORM model — anomaly.anomaly_events hypertable
 Columns mirror architecture.docx Section 6 schema exactly.
 """
+
 from __future__ import annotations
 
 import uuid

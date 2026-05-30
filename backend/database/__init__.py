@@ -2,6 +2,7 @@
 backend/database/__init__.py
 Package exports for the database layer.
 """
+
 from app.core.database import Base
 
 try:

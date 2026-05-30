@@ -2,6 +2,7 @@
 Event schemas — Pydantic v2
 Covers: single/batch ingestion request, anomaly event response, ground-truth labelling
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,6 +50,7 @@ class IngestEventIn(BaseModel):
     @classmethod
     def validate_feature_vector(cls, v: list[float]) -> list[float]:
         import math
+
         for val in v:
             if math.isnan(val) or math.isinf(val):
                 raise ValueError("feature_vector must not contain NaN or Inf values")
@@ -101,7 +103,9 @@ class LabelEventIn(BaseModel):
 
     label: LabelEnum = Field(..., description="Ground-truth feedback label: TP, FP, TN, FN")
     analyst_id: str = Field(..., description="ID of the analyst submitting feedback")
-    note: str | None = Field(default=None, description="Optional annotations regarding the label decision")
+    note: str | None = Field(
+        default=None, description="Optional annotations regarding the label decision"
+    )
 
 
 class EventLabelOut(BaseModel):

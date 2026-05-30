@@ -2,6 +2,7 @@
 Unit tests — Pydantic v2 request/response schemas
 pytest 8.x
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

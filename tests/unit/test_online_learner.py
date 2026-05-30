@@ -1,6 +1,7 @@
 """
 Unit tests — Online Learner (River 0.21)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -12,11 +13,13 @@ class TestOnlineAnomalyDetector:
 
     def test_import_and_instantiate(self, tmp_path) -> None:
         from ml.training.online_learner import OnlineAnomalyDetector
+
         detector = OnlineAnomalyDetector(artifact_path=str(tmp_path))
         assert detector.n_scored == 0
 
     def test_score_returns_float_in_range(self, tmp_path) -> None:
         from ml.training.online_learner import OnlineAnomalyDetector
+
         detector = OnlineAnomalyDetector(artifact_path=str(tmp_path))
         features = {"f0": 1.0, "f1": -0.5, "f2": 2.3}
         score = detector.score_one(features)
@@ -25,6 +28,7 @@ class TestOnlineAnomalyDetector:
 
     def test_process_event_increments_counter(self, tmp_path) -> None:
         from ml.training.online_learner import OnlineAnomalyDetector
+
         detector = OnlineAnomalyDetector(artifact_path=str(tmp_path))
         for _ in range(5):
             detector.process_event([0.1, 0.2, 0.3])
@@ -32,6 +36,7 @@ class TestOnlineAnomalyDetector:
 
     def test_save_and_load_roundtrip(self, tmp_path) -> None:
         from ml.training.online_learner import OnlineAnomalyDetector
+
         d1 = OnlineAnomalyDetector(artifact_path=str(tmp_path))
         for _ in range(10):
             d1.process_event([0.5, -0.3, 1.2])
@@ -46,15 +51,18 @@ class TestOnlineAnomalyDetector:
         import random
 
         from ml.training.online_learner import OnlineAnomalyDetector
-        detector = OnlineAnomalyDetector(
-            artifact_path=str(tmp_path), window_size=100
-        )
+
+        detector = OnlineAnomalyDetector(artifact_path=str(tmp_path), window_size=100)
         # Warm up on normal data
         for _ in range(200):
             detector.process_event([random.gauss(0, 0.5) for _ in range(5)])
 
-        normal_scores = [detector.process_event([random.gauss(0, 0.5) for _ in range(5)]) for _ in range(30)]
-        anomaly_scores = [detector.process_event([random.gauss(10, 1.0) for _ in range(5)]) for _ in range(30)]
+        normal_scores = [
+            detector.process_event([random.gauss(0, 0.5) for _ in range(5)]) for _ in range(30)
+        ]
+        anomaly_scores = [
+            detector.process_event([random.gauss(10, 1.0) for _ in range(5)]) for _ in range(30)
+        ]
 
         avg_normal = sum(normal_scores) / len(normal_scores)
         avg_anomaly = sum(anomaly_scores) / len(anomaly_scores)
@@ -69,6 +77,7 @@ class TestDriftDetector:
 
     def test_no_drift_on_stable_stream(self, tmp_path) -> None:
         from ml.training.online_learner import DriftDetector
+
         detector = DriftDetector(min_instances=50)
         # Feed stable scores — no drift expected
         drifts = [detector.update(0.3 + 0.01 * (i % 5)) for i in range(200)]
@@ -76,6 +85,7 @@ class TestDriftDetector:
 
     def test_drift_detected_on_shift(self, tmp_path) -> None:
         from ml.training.online_learner import DriftDetector
+
         detector = DriftDetector(min_instances=50, threshold=5.0)
         # Warm up with low scores
         for _ in range(100):

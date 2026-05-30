@@ -4,6 +4,7 @@ Architecture: Section 5 — Reactive, triggered on score threshold breach
 Input: scored-events Kafka topic (also called from LangGraph node)
 Output: alerts Kafka topic message
 """
+
 from __future__ import annotations
 
 import json

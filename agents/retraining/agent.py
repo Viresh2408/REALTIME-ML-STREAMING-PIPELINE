@@ -4,6 +4,7 @@ Architecture: Section 5 — Scheduled (Cron daily or drift signal)
 Output: Updated model artifact saved to MinIO + MLflow
 Uses: APScheduler 3.10, scikit-learn 1.5, MLflow 2.13, MinIO
 """
+
 from __future__ import annotations
 
 import os
@@ -52,7 +53,10 @@ async def fetch_training_data_from_db(
 
         # Each feature_vector is a JSON list stored as JSONB
         import json
-        arrays = [np.array(json.loads(row[0]) if isinstance(row[0], str) else row[0]) for row in rows]
+
+        arrays = [
+            np.array(json.loads(row[0]) if isinstance(row[0], str) else row[0]) for row in rows
+        ]
         return np.vstack(arrays)
 
     except Exception as exc:

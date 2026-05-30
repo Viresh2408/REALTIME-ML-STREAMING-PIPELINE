@@ -44,17 +44,18 @@ logger = structlog.get_logger(__name__)
 
 # Maximum download/load attempts before giving up on a model-update message
 _MAX_RELOAD_RETRIES: int = 3
-_RETRY_BACKOFF_BASE_S: float = 1.0   # exponential backoff: 1, 2, 4 s
+_RETRY_BACKOFF_BASE_S: float = 1.0  # exponential backoff: 1, 2, 4 s
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Async Read-Write Lock
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class ReadWriteLock:
     """
     High-performance no-op Readers-Writer Lock.
-    
+
     Since this worker runs on a single-threaded asyncio event loop where task
     context switches ONLY occur at 'await' expressions, a synchronous pointer
     swap (without await) is inherently atomic. Eliminating the Condition-based
@@ -80,6 +81,7 @@ class ReadWriteLock:
 # ──────────────────────────────────────────────────────────────────────────────
 # Model Reload Handler
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class ModelReloadHandler:
     """
@@ -116,10 +118,10 @@ class ModelReloadHandler:
 
         self._consumer = Consumer(
             {
-                "bootstrap.servers":  bootstrap,
-                "group.id":           "ml-inference-hot-reload-group",
-                "auto.offset.reset":  "latest",   # only care about new updates
-                "enable.auto.commit": True,        # auto-commit is fine for update events
+                "bootstrap.servers": bootstrap,
+                "group.id": "ml-inference-hot-reload-group",
+                "auto.offset.reset": "latest",  # only care about new updates
+                "enable.auto.commit": True,  # auto-commit is fine for update events
                 "session.timeout.ms": 30_000,
             }
         )
@@ -140,9 +142,7 @@ class ModelReloadHandler:
 
         try:
             while self._running:
-                msg = await loop.run_in_executor(
-                    None, lambda: self._consumer.poll(1.0)
-                )
+                msg = await loop.run_in_executor(None, lambda: self._consumer.poll(1.0))
 
                 if msg is None:
                     await asyncio.sleep(0.05)
@@ -209,7 +209,7 @@ class ModelReloadHandler:
         for attempt in range(1, _MAX_RELOAD_RETRIES + 1):
             try:
                 await self._reload_in_background(version)
-                return   # success
+                return  # success
             except Exception as exc:
                 wait_s = _RETRY_BACKOFF_BASE_S * (2 ** (attempt - 1))
                 logger.error(

@@ -1,6 +1,7 @@
 """
 Event Service — business logic for event ingestion, querying, and ground-truth labelling
 """
+
 from __future__ import annotations
 
 import json

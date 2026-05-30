@@ -13,11 +13,14 @@ server = Server("kafka-ops-mcp")
 
 KAFKA_BROKERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
 
+
 def get_admin_client():
     return AdminClient({"bootstrap.servers": KAFKA_BROKERS})
 
+
 def get_producer():
     return Producer({"bootstrap.servers": KAFKA_BROKERS})
+
 
 @server.tool()
 async def get_consumer_lag(group_id: str | None = None, topic: str | None = None) -> dict[str, Any]:
@@ -29,8 +32,9 @@ async def get_consumer_lag(group_id: str | None = None, topic: str | None = None
     return {
         "group_id": group_id or "all",
         "topic": topic or "all",
-        "lag_details": "Lag computation requires consumer offsets vs high watermarks. Not fully implemented in dummy."
+        "lag_details": "Lag computation requires consumer offsets vs high watermarks. Not fully implemented in dummy.",
     }
+
 
 @server.tool()
 async def list_topics() -> list[dict[str, Any]]:
@@ -39,14 +43,14 @@ async def list_topics() -> list[dict[str, Any]]:
     md = admin.list_topics(timeout=5)
     topics = []
     for topic_name, topic_meta in md.topics.items():
-        topics.append({
-            "topic": topic_name,
-            "partition_count": len(topic_meta.partitions)
-        })
+        topics.append({"topic": topic_name, "partition_count": len(topic_meta.partitions)})
     return topics
 
+
 @server.tool()
-async def produce_test_event(event_type: str, feature_overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+async def produce_test_event(
+    event_type: str, feature_overrides: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Inject a synthetic test event into raw-events topic."""
     p = get_producer()
     topic = os.environ.get("KAFKA_RAW_EVENTS_TOPIC", "raw-events")
@@ -54,7 +58,7 @@ async def produce_test_event(event_type: str, feature_overrides: dict[str, Any] 
     payload = {
         "source_id": "test_mcp_injection",
         "feature_vector": [0.0] * 10,
-        "event_type": event_type
+        "event_type": event_type,
     }
     if feature_overrides:
         payload.update(feature_overrides)
@@ -63,10 +67,11 @@ async def produce_test_event(event_type: str, feature_overrides: dict[str, Any] 
         if err is not None:
             print(f"Message delivery failed: {err}")
 
-    p.produce(topic, value=json.dumps(payload).encode('utf-8'), callback=delivery_report)
+    p.produce(topic, value=json.dumps(payload).encode("utf-8"), callback=delivery_report)
     p.flush(timeout=5)
 
     return {"status": "produced", "topic": topic, "payload": payload}
+
 
 @server.tool()
 async def get_topic_metrics(topic: str, window: str = "1h") -> dict[str, Any]:
@@ -76,12 +81,9 @@ async def get_topic_metrics(topic: str, window: str = "1h") -> dict[str, Any]:
     return {
         "topic": topic,
         "window": window,
-        "metrics": {
-            "messages_per_sec": 150.5,
-            "bytes_per_sec": 10240,
-            "error_rate": 0.001
-        }
+        "metrics": {"messages_per_sec": 150.5, "bytes_per_sec": 10240, "error_rate": 0.001},
     }
+
 
 # Create ASGI app from MCP server
 mcp_app = create_mcp_server(server)

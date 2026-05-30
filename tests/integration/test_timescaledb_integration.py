@@ -3,6 +3,7 @@ Integration tests — TimescaleDB schema and hypertable
 Uses testcontainers-python 0.12 PostgreSQL (+ TimescaleDB extension).
 pytest 8.x + pytest-asyncio 0.23.7
 """
+
 from __future__ import annotations
 
 import json
@@ -16,6 +17,7 @@ TIMESCALE_IMAGE = "timescale/timescaledb:2.15.3-pg16"
 
 try:
     from testcontainers.postgres import PostgresContainer
+
     TESTCONTAINERS_AVAILABLE = True
 except ImportError:
     TESTCONTAINERS_AVAILABLE = False
@@ -99,9 +101,7 @@ class TestTimescaleDBSchema:
             )
 
             # Verify retrieval
-            row = await conn.fetchrow(
-                "SELECT * FROM anomaly_events WHERE event_id = $1", event_id
-            )
+            row = await conn.fetchrow("SELECT * FROM anomaly_events WHERE event_id = $1", event_id)
             assert row is not None
             assert row["source_id"] == "test-sensor"
             assert abs(row["anomaly_score"] - 0.85) < 1e-6
@@ -114,6 +114,7 @@ class TestTimescaleDBSchema:
     async def test_anomaly_score_constraint(self, db_container) -> None:
         """Verify CHECK constraint rejects scores outside [0, 1]."""
         import asyncpg
+
         dsn = db_container.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
         conn = await asyncpg.connect(dsn)
 

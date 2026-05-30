@@ -45,18 +45,19 @@ except ImportError as e:
 # Config
 # ─────────────────────────────────────────────────────────────────────────────
 
-BOOTSTRAP   = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 METRICS_URL = os.getenv("METRICS_URL", "http://localhost:8090/metrics")
-RAW_TOPIC   = os.getenv("KAFKA_RAW_EVENTS_TOPIC", "raw-events")
+RAW_TOPIC = os.getenv("KAFKA_RAW_EVENTS_TOPIC", "raw-events")
 SCORED_TOPIC = os.getenv("KAFKA_SCORED_EVENTS_TOPIC", "scored-events")
-NUM_EVENTS  = 1_000
-TIMEOUT_S   = 5.0          # all 1000 scored events must appear within this
-P95_LIMIT_S = 0.010        # 10 ms
+NUM_EVENTS = 1_000
+TIMEOUT_S = 5.0  # all 1000 scored events must appear within this
+P95_LIMIT_S = 0.010  # 10 ms
 CONSUMER_GROUP = "verify-pipeline-test"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Result container
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class VerifyResult:
@@ -71,6 +72,7 @@ class VerifyResult:
 # Utility helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _now_ms() -> int:
     return int(time.time() * 1_000)
 
@@ -78,34 +80,35 @@ def _now_ms() -> int:
 def _make_event(i: int) -> dict[str, Any]:
     """Build a realistic raw event dict matching the raw_event schema."""
     import random
+
     rng = random.Random(i)
     return {
-        "event_id":   str(uuid.uuid4()),
-        "source_id":  f"simulator-{i % 4}",
+        "event_id": str(uuid.uuid4()),
+        "source_id": f"simulator-{i % 4}",
         "event_type": rng.choice(["network", "server", "financial"]),
         "event_time": _now_ms(),
         "features": {
-            "packet_length":    rng.uniform(40, 1500),
-            "flow_duration":    rng.uniform(0, 10),
-            "fwd_packets/s":    rng.uniform(0, 1000),
-            "bwd_packets/s":    rng.uniform(0, 500),
-            "flag_counts":      rng.randint(0, 10),
+            "packet_length": rng.uniform(40, 1500),
+            "flow_duration": rng.uniform(0, 10),
+            "fwd_packets/s": rng.uniform(0, 1000),
+            "bwd_packets/s": rng.uniform(0, 500),
+            "flag_counts": rng.randint(0, 10),
             # Inject occasional anomaly-like values
-            "cpu_pct":          rng.uniform(0, 100) if i % 50 != 0 else 99.9,
-            "mem_pct":          rng.uniform(20, 80),
-            "disk_io_bytes":    rng.uniform(0, 1e7),
-            "net_rx_bytes":     rng.uniform(0, 1e8),
-            "error_rate":       rng.uniform(0, 0.05) if i % 100 != 0 else 0.95,
-            "price":            rng.uniform(100, 500),
-            "volume":           rng.uniform(1000, 100000),
-            "bid_ask_spread":   rng.uniform(0.01, 2.0),
-            "price_return_1m":  rng.gauss(0, 0.01),
-            "volume_z_score":   rng.gauss(0, 1),
-            "hour_of_day":      rng.randint(0, 23),
-            "day_of_week":      rng.randint(0, 6),
-            "is_market_hours":  rng.choice([0, 1]),
-            "rolling_mean_5m":  rng.uniform(50, 200),
-            "rolling_std_5m":   rng.uniform(1, 20),
+            "cpu_pct": rng.uniform(0, 100) if i % 50 != 0 else 99.9,
+            "mem_pct": rng.uniform(20, 80),
+            "disk_io_bytes": rng.uniform(0, 1e7),
+            "net_rx_bytes": rng.uniform(0, 1e8),
+            "error_rate": rng.uniform(0, 0.05) if i % 100 != 0 else 0.95,
+            "price": rng.uniform(100, 500),
+            "volume": rng.uniform(1000, 100000),
+            "bid_ask_spread": rng.uniform(0.01, 2.0),
+            "price_return_1m": rng.gauss(0, 0.01),
+            "volume_z_score": rng.gauss(0, 1),
+            "hour_of_day": rng.randint(0, 23),
+            "day_of_week": rng.randint(0, 6),
+            "is_market_hours": rng.choice([0, 1]),
+            "rolling_mean_5m": rng.uniform(50, 200),
+            "rolling_std_5m": rng.uniform(1, 20),
             "deviation_from_mean": rng.gauss(0, 2),
         },
     }
@@ -131,9 +134,13 @@ def _parse_prometheus_histogram(text: str, metric_name: str) -> dict[str, float]
             le = float(le_part)  # "+Inf" → inf
             buckets[le] = float(val_part)
         elif f"{metric_name}_count" in line and not line.startswith("#"):
-            total_count = float(line.split("} ")[1].split()[0]) if "}" in line else float(line.split(" ")[1])
+            total_count = (
+                float(line.split("} ")[1].split()[0]) if "}" in line else float(line.split(" ")[1])
+            )
         elif f"{metric_name}_sum" in line and not line.startswith("#"):
-            total_sum = float(line.split("} ")[1].split()[0]) if "}" in line else float(line.split(" ")[1])
+            total_sum = (
+                float(line.split("} ")[1].split()[0]) if "}" in line else float(line.split(" ")[1])
+            )
 
     if not buckets or total_count is None:
         return None
@@ -172,6 +179,7 @@ def _percentile_from_histogram(
 # Check 0 — Infrastructure readiness
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def check_kafka_connectivity(bootstrap: str) -> VerifyResult:
     t0 = time.perf_counter()
     name = "Kafka connectivity"
@@ -181,7 +189,9 @@ def check_kafka_connectivity(bootstrap: str) -> VerifyResult:
         elapsed = time.perf_counter() - t0
         return VerifyResult(name, True, f"Connected to {bootstrap}", elapsed)
     except Exception as exc:
-        return VerifyResult(name, False, f"Cannot connect to Kafka at {bootstrap}: {exc}", time.perf_counter() - t0)
+        return VerifyResult(
+            name, False, f"Cannot connect to Kafka at {bootstrap}: {exc}", time.perf_counter() - t0
+        )
 
 
 def check_metrics_endpoint(metrics_url: str) -> VerifyResult:
@@ -192,16 +202,22 @@ def check_metrics_endpoint(metrics_url: str) -> VerifyResult:
         r.raise_for_status()
         elapsed = time.perf_counter() - t0
         has_latency = "inference_latency_seconds" in r.text
-        has_events  = "events_processed_total" in r.text
+        has_events = "events_processed_total" in r.text
         if has_latency and has_events:
-            return VerifyResult(name, True, f"HTTP 200 — expected metrics present ({len(r.text)} bytes)", elapsed)
+            return VerifyResult(
+                name, True, f"HTTP 200 — expected metrics present ({len(r.text)} bytes)", elapsed
+            )
         else:
             missing = []
-            if not has_latency: missing.append("inference_latency_seconds")
-            if not has_events:  missing.append("events_processed_total")
+            if not has_latency:
+                missing.append("inference_latency_seconds")
+            if not has_events:
+                missing.append("events_processed_total")
             return VerifyResult(name, False, f"Metrics endpoint up but missing: {missing}", elapsed)
     except Exception as exc:
-        return VerifyResult(name, False, f"Cannot reach {metrics_url}: {exc}", time.perf_counter() - t0)
+        return VerifyResult(
+            name, False, f"Cannot reach {metrics_url}: {exc}", time.perf_counter() - t0
+        )
 
 
 def check_topic_exists(bootstrap: str, topic: str) -> VerifyResult:
@@ -212,10 +228,14 @@ def check_topic_exists(bootstrap: str, topic: str) -> VerifyResult:
         meta = p.list_topics(timeout=5)
         if topic in meta.topics:
             parts = len(meta.topics[topic].partitions)
-            return VerifyResult(name, True, f"Topic exists ({parts} partitions)", time.perf_counter() - t0)
+            return VerifyResult(
+                name, True, f"Topic exists ({parts} partitions)", time.perf_counter() - t0
+            )
         else:
             available = sorted(meta.topics.keys())
-            return VerifyResult(name, False, f"Topic not found. Available: {available}", time.perf_counter() - t0)
+            return VerifyResult(
+                name, False, f"Topic not found. Available: {available}", time.perf_counter() - t0
+            )
     except Exception as exc:
         return VerifyResult(name, False, str(exc), time.perf_counter() - t0)
 
@@ -224,9 +244,8 @@ def check_topic_exists(bootstrap: str, topic: str) -> VerifyResult:
 # Check 1 — Produce 1 000 events
 # ─────────────────────────────────────────────────────────────────────────────
 
-def produce_test_events(
-    bootstrap: str, topic: str, n: int
-) -> tuple[VerifyResult, list[str]]:
+
+def produce_test_events(bootstrap: str, topic: str, n: int) -> tuple[VerifyResult, list[str]]:
     """Returns (result, list_of_produced_event_ids)."""
     t0 = time.perf_counter()
     name = f"Produce {n:,} events → {topic}"
@@ -273,16 +292,24 @@ def produce_test_events(
         rate = n / elapsed if elapsed > 0 else 0
         if errors:
             return (
-                VerifyResult(name, False,
+                VerifyResult(
+                    name,
+                    False,
                     f"Produced {len(delivered)}/{n}, {len(errors)} delivery errors. Rate: {rate:.0f}/s",
-                    elapsed, {"errors": errors[:5]}),
+                    elapsed,
+                    {"errors": errors[:5]},
+                ),
                 delivered,
             )
 
         return (
-            VerifyResult(name, len(delivered) == n,
+            VerifyResult(
+                name,
+                len(delivered) == n,
                 f"All {len(delivered):,} delivered in {elapsed:.2f}s @ {rate:,.0f} events/s",
-                elapsed, {"unflushed": remaining}),
+                elapsed,
+                {"unflushed": remaining},
+            ),
             delivered,
         )
     except Exception as exc:
@@ -296,13 +323,16 @@ def produce_test_events(
 # Check 2 — Consume scored-events and verify count within timeout
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def get_topic_watermarks(bootstrap: str, topic: str) -> list[TopicPartition]:
     """Retrieve the current high watermark offsets for all partitions of a topic."""
-    c = Consumer({
-        "bootstrap.servers": bootstrap,
-        "group.id": f"temp-watermark-{int(time.time())}",
-        "auto.offset.reset": "latest"
-    })
+    c = Consumer(
+        {
+            "bootstrap.servers": bootstrap,
+            "group.id": f"temp-watermark-{int(time.time())}",
+            "auto.offset.reset": "latest",
+        }
+    )
     try:
         meta = c.list_topics(topic, timeout=5)
         partitions = []
@@ -338,13 +368,13 @@ def consume_scored_events(
 
     c = Consumer(
         {
-            "bootstrap.servers":   bootstrap,
-            "group.id":            group_id,
-            "auto.offset.reset":   "latest",   # only new messages
-            "enable.auto.commit":  True,
-            "session.timeout.ms":  6_000,
-            "fetch.min.bytes":     1,
-            "fetch.wait.max.ms":   50,
+            "bootstrap.servers": bootstrap,
+            "group.id": group_id,
+            "auto.offset.reset": "latest",  # only new messages
+            "enable.auto.commit": True,
+            "session.timeout.ms": 6_000,
+            "fetch.min.bytes": 1,
+            "fetch.wait.max.ms": 50,
         }
     )
 
@@ -354,8 +384,7 @@ def consume_scored_events(
         # Seek to end of all partitions before subscribing so we don't replay history
         meta = c.list_topics(scored_topic, timeout=5)
         partitions = [
-            TopicPartition(scored_topic, pid)
-            for pid in meta.topics[scored_topic].partitions
+            TopicPartition(scored_topic, pid) for pid in meta.topics[scored_topic].partitions
         ]
         c.assign(partitions)
         # Seek each partition to its high watermark
@@ -364,8 +393,10 @@ def consume_scored_events(
             tp.offset = high
         c.assign(partitions)  # re-assign with updated offsets
 
-    print(f"\n  [CONSUME] Waiting for {expected_count:,} scored events on '{scored_topic}' "
-          f"(timeout={timeout_s}s)...")
+    print(
+        f"\n  [CONSUME] Waiting for {expected_count:,} scored events on '{scored_topic}' "
+        f"(timeout={timeout_s}s)..."
+    )
 
     try:
         deadline = time.perf_counter() + timeout_s
@@ -400,8 +431,10 @@ def consume_scored_events(
             if now - last_print >= 2.0:
                 elapsed = now - t0
                 rate = len(scored_ids) / elapsed if elapsed > 0 else 0
-                print(f"    {len(scored_ids):>5}/{expected_count} scored "
-                      f"({rate:,.0f}/s) — {elapsed:.1f}s elapsed")
+                print(
+                    f"    {len(scored_ids):>5}/{expected_count} scored "
+                    f"({rate:,.0f}/s) — {elapsed:.1f}s elapsed"
+                )
                 last_print = now
 
             if len(scored_ids) >= expected_count:
@@ -427,7 +460,10 @@ def consume_scored_events(
             detail_parts.append(f"EXCEEDED {timeout_s}s timeout")
 
     return VerifyResult(
-        name, passed, " | ".join(detail_parts), elapsed,
+        name,
+        passed,
+        " | ".join(detail_parts),
+        elapsed,
         {
             "received": received,
             "expected": expected_count,
@@ -442,9 +478,10 @@ def consume_scored_events(
 # Check 3 — Prometheus P95 latency
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def check_p95_latency(metrics_url: str, limit_s: float) -> VerifyResult:
     t0 = time.perf_counter()
-    name = f"Prometheus P95 inference_latency_seconds < {limit_s*1000:.0f}ms"
+    name = f"Prometheus P95 inference_latency_seconds < {limit_s * 1000:.0f}ms"
 
     try:
         r = requests.get(metrics_url, timeout=10)
@@ -453,14 +490,18 @@ def check_p95_latency(metrics_url: str, limit_s: float) -> VerifyResult:
 
         parsed = _parse_prometheus_histogram(r.text, "inference_latency_seconds")
         if parsed is None:
-            return VerifyResult(name, False, "Could not parse inference_latency_seconds histogram", elapsed)
+            return VerifyResult(
+                name, False, "Could not parse inference_latency_seconds histogram", elapsed
+            )
 
         count = parsed["count"]
         total_sum = parsed["sum"]
         buckets = parsed["buckets"]
 
         if count == 0:
-            return VerifyResult(name, False, "No inference observations recorded yet (count=0)", elapsed)
+            return VerifyResult(
+                name, False, "No inference observations recorded yet (count=0)", elapsed
+            )
 
         p50 = _percentile_from_histogram(buckets, count, 50)
         p95 = _percentile_from_histogram(buckets, count, 95)
@@ -471,15 +512,18 @@ def check_p95_latency(metrics_url: str, limit_s: float) -> VerifyResult:
         passed = p95 is not None and p95 <= limit_s
 
         detail = (
-            f"count={count:.0f} | avg={avg*1000:.2f}ms | "
-            f"p50={((p50 or 0)*1000):.2f}ms | "
+            f"count={count:.0f} | avg={avg * 1000:.2f}ms | "
+            f"p50={((p50 or 0) * 1000):.2f}ms | "
             f"p95={p95_ms:.2f}ms | "
-            f"p99={((p99 or 0)*1000):.2f}ms | "
-            f"limit={limit_s*1000:.0f}ms"
+            f"p99={((p99 or 0) * 1000):.2f}ms | "
+            f"limit={limit_s * 1000:.0f}ms"
         )
 
         return VerifyResult(
-            name, passed, detail, elapsed,
+            name,
+            passed,
+            detail,
+            elapsed,
             {
                 "count": count,
                 "avg_ms": round(avg * 1000, 3),
@@ -510,12 +554,14 @@ def check_events_processed_counter(metrics_url: str, expected: int) -> VerifyRes
                     error_count = int(float(line.split()[-1]))
 
         passed = success_count >= expected
-        detail = (
-            f"success={success_count:,} error={error_count:,} "
-            f"(expected ≥ {expected:,})"
+        detail = f"success={success_count:,} error={error_count:,} (expected ≥ {expected:,})"
+        return VerifyResult(
+            name,
+            passed,
+            detail,
+            time.perf_counter() - t0,
+            {"success": success_count, "error": error_count},
         )
-        return VerifyResult(name, passed, detail, time.perf_counter() - t0,
-                            {"success": success_count, "error": error_count})
     except Exception as exc:
         return VerifyResult(name, False, str(exc), time.perf_counter() - t0)
 
@@ -523,6 +569,7 @@ def check_events_processed_counter(metrics_url: str, expected: int) -> VerifyRes
 # ─────────────────────────────────────────────────────────────────────────────
 # Report renderer
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _render_report(results: list[VerifyResult]) -> bool:
     W = 80
@@ -534,7 +581,7 @@ def _render_report(results: list[VerifyResult]) -> bool:
     print("═" * W)
 
     for i, r in enumerate(results, 1):
-        icon  = "✅" if r.passed else "❌"
+        icon = "✅" if r.passed else "❌"
         label = "PASS" if r.passed else "FAIL"
         print(f"\n  {i}. {icon} [{label}] {r.name}")
         print(f"       {r.detail}")
@@ -572,26 +619,31 @@ def _render_report(results: list[VerifyResult]) -> bool:
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     global BOOTSTRAP, METRICS_URL, NUM_EVENTS, TIMEOUT_S
 
     parser = argparse.ArgumentParser(description="Pipeline end-to-end verification")
-    parser.add_argument("--bootstrap", default=BOOTSTRAP,   help="Kafka bootstrap servers")
-    parser.add_argument("--metrics",   default=METRICS_URL, help="Prometheus metrics URL")
-    parser.add_argument("--timeout",   type=float, default=TIMEOUT_S, help="Max seconds for all events to be scored")
-    parser.add_argument("--events",    type=int,   default=NUM_EVENTS,  help="Number of test events to send")
+    parser.add_argument("--bootstrap", default=BOOTSTRAP, help="Kafka bootstrap servers")
+    parser.add_argument("--metrics", default=METRICS_URL, help="Prometheus metrics URL")
+    parser.add_argument(
+        "--timeout", type=float, default=TIMEOUT_S, help="Max seconds for all events to be scored"
+    )
+    parser.add_argument(
+        "--events", type=int, default=NUM_EVENTS, help="Number of test events to send"
+    )
     args = parser.parse_args()
 
-    BOOTSTRAP   = args.bootstrap
+    BOOTSTRAP = args.bootstrap
     METRICS_URL = args.metrics
-    TIMEOUT_S   = args.timeout
-    NUM_EVENTS  = args.events
+    TIMEOUT_S = args.timeout
+    NUM_EVENTS = args.events
 
-    print(f"\n{'═'*80}")
+    print(f"\n{'═' * 80}")
     print(f"  ML PIPELINE VERIFICATION  —  {NUM_EVENTS:,} events / {TIMEOUT_S}s timeout")
     print(f"  Kafka:   {BOOTSTRAP}")
     print(f"  Metrics: {METRICS_URL}")
-    print(f"{'═'*80}")
+    print(f"{'═' * 80}")
 
     results: list[VerifyResult] = []
 
@@ -619,7 +671,9 @@ def main() -> int:
 
     # ── Phase 2: Consume scored-events ────────────────────────────────────────
     print("\n[PHASE 2] Verifying scored-events output...")
-    consume_result = consume_scored_events(BOOTSTRAP, SCORED_TOPIC, NUM_EVENTS, TIMEOUT_S, start_offsets=start_offsets)
+    consume_result = consume_scored_events(
+        BOOTSTRAP, SCORED_TOPIC, NUM_EVENTS, TIMEOUT_S, start_offsets=start_offsets
+    )
     results.append(consume_result)
 
     # ── Phase 3: Prometheus metrics ───────────────────────────────────────────

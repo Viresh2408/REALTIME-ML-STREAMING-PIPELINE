@@ -13,19 +13,22 @@ from agents.env_loader import load_env
 
 load_env()
 
+
 class AlertAgent:
     def __init__(self) -> None:
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
         self.in_topic = os.getenv("KAFKA_SCORED_EVENTS_TOPIC", "scored-events")
         self.out_topic = os.getenv("KAFKA_ALERTS_TOPIC", "alerts")
 
-        self.consumer = Consumer({
-            'bootstrap.servers': bootstrap_servers,
-            'group.id': os.getenv("KAFKA_ALERT_GROUP_ID", "alert-agent-group"),
-            'auto.offset.reset': 'earliest',
-            'enable.auto.commit': False
-        })
-        self.producer = Producer({'bootstrap.servers': bootstrap_servers})
+        self.consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap_servers,
+                "group.id": os.getenv("KAFKA_ALERT_GROUP_ID", "alert-agent-group"),
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": False,
+            }
+        )
+        self.producer = Producer({"bootstrap.servers": bootstrap_servers})
         self.running = False
 
     def _determine_severity(self, score: float) -> str:
@@ -56,7 +59,7 @@ class AlertAgent:
                     val = msg.value()
                     if val is None:
                         continue
-                    event = json.loads(val.decode('utf-8'))
+                    event = json.loads(val.decode("utf-8"))
                     score = event.get("anomaly_score", 0.0)
                     severity = self._determine_severity(score)
 
@@ -68,13 +71,11 @@ class AlertAgent:
                             "score": score,
                             "source_id": event.get("source_id"),
                             "created_at": int(time.time() * 1000),
-                            "acknowledged": False
+                            "acknowledged": False,
                         }
 
                         self.producer.produce(
-                            topic=self.out_topic,
-                            key=alert["alert_id"],
-                            value=json.dumps(alert)
+                            topic=self.out_topic, key=alert["alert_id"], value=json.dumps(alert)
                         )
                         self.producer.poll(0)
 
@@ -88,6 +89,7 @@ class AlertAgent:
 
     def stop(self) -> None:
         self.running = False
+
 
 if __name__ == "__main__":
     agent = AlertAgent()

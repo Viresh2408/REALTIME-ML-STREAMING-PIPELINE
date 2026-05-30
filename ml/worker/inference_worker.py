@@ -43,9 +43,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 # ──────────────────────────────────────────────────────────────────────────────
 # Ensure project root is importable as the "ml" package regardless of CWD
 # ──────────────────────────────────────────────────────────────────────────────
-_PROJECT_ROOT = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
@@ -71,8 +69,8 @@ logger = structlog.get_logger(__name__)
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-NUM_WORKER_TASKS: int = 4          # concurrent consumer-task coroutines
-LOG_EVERY_N_EVENTS: int = 1_000   # monitoring checkpoint interval
+NUM_WORKER_TASKS: int = 4  # concurrent consumer-task coroutines
+LOG_EVERY_N_EVENTS: int = 1_000  # monitoring checkpoint interval
 
 # Anomaly-score → severity mapping (scores are normalised to [0, 1])
 _SEVERITY_THRESHOLDS: list[tuple[float, str]] = [
@@ -109,6 +107,7 @@ _INSERT_SQL = text(
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _score_to_severity(score: float) -> str:
     """Map a normalised anomaly score [0, 1] to a severity label."""
     for threshold, label in _SEVERITY_THRESHOLDS:
@@ -137,6 +136,7 @@ def _ts_to_datetime(raw_ts: Any) -> datetime:
 # ──────────────────────────────────────────────────────────────────────────────
 # Inference Engine  (shared across all worker tasks)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class ProductionInferenceEngine:
     """
@@ -219,16 +219,16 @@ class ProductionInferenceEngine:
         severity = _score_to_severity(anomaly_score) if is_anomaly else "LOW"
 
         return {
-            "event_id":      raw_event.get("event_id", ""),
-            "source_id":     raw_event.get("source_id", ""),
-            "event_type":    raw_event.get("event_type", ""),
-            "features":      raw_event.get("features", {}),
-            "event_time":    raw_event.get("event_time", int(time.time() * 1_000)),
+            "event_id": raw_event.get("event_id", ""),
+            "source_id": raw_event.get("source_id", ""),
+            "event_type": raw_event.get("event_type", ""),
+            "features": raw_event.get("features", {}),
+            "event_time": raw_event.get("event_time", int(time.time() * 1_000)),
             "anomaly_score": anomaly_score,
-            "is_anomaly":    is_anomaly,
-            "severity":      severity,
+            "is_anomaly": is_anomaly,
+            "severity": severity,
             "model_version": model_ver,
-            "processed_at":  int(time.time() * 1_000),
+            "processed_at": int(time.time() * 1_000),
         }
 
     async def infer_batch(self, raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -251,14 +251,14 @@ class ProductionInferenceEngine:
                 # (batch); wrapping in list() + checking for the scalar case gives
                 # the type-checker concrete list[float] / list[bool] types.
                 raw_scores = result["score"]
-                raw_flags  = result["is_anomaly"]
+                raw_flags = result["is_anomaly"]
                 scores: list[float] = (
-                    [float(raw_scores)]           # type: ignore[arg-type]
+                    [float(raw_scores)]  # type: ignore[arg-type]
                     if not isinstance(raw_scores, list)
                     else [float(s) for s in raw_scores]
                 )
                 is_anomalies: list[bool] = (
-                    [bool(raw_flags)]             # type: ignore[arg-type]
+                    [bool(raw_flags)]  # type: ignore[arg-type]
                     if not isinstance(raw_flags, list)
                     else [bool(f) for f in raw_flags]
                 )
@@ -283,18 +283,20 @@ class ProductionInferenceEngine:
                 is_anomaly = True
             severity = _score_to_severity(score) if is_anomaly else "LOW"
 
-            scored_list.append({
-                "event_id":      raw_event.get("event_id", ""),
-                "source_id":     raw_event.get("source_id", ""),
-                "event_type":    raw_event.get("event_type", ""),
-                "features":      raw_event.get("features", {}),
-                "event_time":    raw_event.get("event_time", int(time.time() * 1_000)),
-                "anomaly_score": float(score),
-                "is_anomaly":    bool(is_anomaly),
-                "severity":      severity,
-                "model_version": model_ver,
-                "processed_at":  int(time.time() * 1_000),
-            })
+            scored_list.append(
+                {
+                    "event_id": raw_event.get("event_id", ""),
+                    "source_id": raw_event.get("source_id", ""),
+                    "event_type": raw_event.get("event_type", ""),
+                    "features": raw_event.get("features", {}),
+                    "event_time": raw_event.get("event_time", int(time.time() * 1_000)),
+                    "anomaly_score": float(score),
+                    "is_anomaly": bool(is_anomaly),
+                    "severity": severity,
+                    "model_version": model_ver,
+                    "processed_at": int(time.time() * 1_000),
+                }
+            )
 
         return scored_list
 
@@ -302,6 +304,7 @@ class ProductionInferenceEngine:
 # ──────────────────────────────────────────────────────────────────────────────
 # Single worker task (one per asyncio task / one Kafka Consumer per task)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class InferenceWorkerTask:
     """
@@ -342,22 +345,22 @@ class InferenceWorkerTask:
         # Consumer — manual commit, one per task for isolation
         self._consumer = Consumer(
             {
-                "bootstrap.servers":    self._bootstrap,
-                "group.id":             os.getenv("KAFKA_CONSUMER_GROUP_ID", "ml-inference-group"),
-                "auto.offset.reset":    os.getenv("KAFKA_AUTO_OFFSET_RESET", "earliest"),
-                "enable.auto.commit":   False,          # critical: manual commit only
-                "session.timeout.ms":   30_000,
-                "max.poll.interval.ms": 300_000,        # 5 min max per poll cycle
-                "fetch.min.bytes":      1,
-                "fetch.wait.max.ms":    100,            # low latency polling
+                "bootstrap.servers": self._bootstrap,
+                "group.id": os.getenv("KAFKA_CONSUMER_GROUP_ID", "ml-inference-group"),
+                "auto.offset.reset": os.getenv("KAFKA_AUTO_OFFSET_RESET", "earliest"),
+                "enable.auto.commit": False,  # critical: manual commit only
+                "session.timeout.ms": 30_000,
+                "max.poll.interval.ms": 300_000,  # 5 min max per poll cycle
+                "fetch.min.bytes": 1,
+                "fetch.wait.max.ms": 100,  # low latency polling
             }
         )
 
         self._running: bool = False
-        self._event_count: int = 0          # total processed (success + error)
-        self._success_count: int = 0        # for checkpoint logging
-        self._uncommitted_count: int = 0    # count of processed but uncommitted events
-        self._last_msg: Any = None          # last successfully processed message
+        self._event_count: int = 0  # total processed (success + error)
+        self._success_count: int = 0  # for checkpoint logging
+        self._uncommitted_count: int = 0  # count of processed but uncommitted events
+        self._last_msg: Any = None  # last successfully processed message
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -538,9 +541,7 @@ class InferenceWorkerTask:
             ) from json_err
 
         if not isinstance(payload, dict):
-            raise ValueError(
-                f"Expected JSON object (dict), got {type(payload).__name__}"
-            )
+            raise ValueError(f"Expected JSON object (dict), got {type(payload).__name__}")
         return payload
 
     async def _write_to_db(self, scored: dict[str, Any]) -> None:
@@ -557,14 +558,14 @@ class InferenceWorkerTask:
                 await session.execute(
                     _INSERT_SQL,
                     {
-                        "event_id":       event_id,
-                        "event_time":     event_time,
-                        "source_id":      scored.get("source_id", "unknown"),
+                        "event_id": event_id,
+                        "event_time": event_time,
+                        "source_id": scored.get("source_id", "unknown"),
                         "feature_vector": json.dumps(scored.get("features", {})),
-                        "anomaly_score":  scored["anomaly_score"],
-                        "is_anomaly":     scored["is_anomaly"],
-                        "model_version":  scored["model_version"],
-                        "processed_at":   datetime.now(tz=UTC),
+                        "anomaly_score": scored["anomaly_score"],
+                        "is_anomaly": scored["is_anomaly"],
+                        "model_version": scored["model_version"],
+                        "processed_at": datetime.now(tz=UTC),
                     },
                 )
                 await session.commit()
@@ -611,10 +612,10 @@ class InferenceWorkerTask:
         """
         dlq_payload = json.dumps(
             {
-                "task_id":      self.task_id,
-                "error_type":   type(exc).__name__,
+                "task_id": self.task_id,
+                "error_type": type(exc).__name__,
                 "error_message": str(exc),
-                "raw_payload":  raw_bytes.decode("utf-8", errors="replace"),
+                "raw_payload": raw_bytes.decode("utf-8", errors="replace"),
                 "failed_at_ms": int(time.time() * 1_000),
             },
             default=str,
@@ -634,6 +635,7 @@ class InferenceWorkerTask:
 # ──────────────────────────────────────────────────────────────────────────────
 # Consumer-lag monitor (background coroutine)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 async def _monitor_consumer_lag(tasks: list[InferenceWorkerTask]) -> None:
     """
@@ -658,17 +660,13 @@ async def _monitor_consumer_lag(tasks: list[InferenceWorkerTask]) -> None:
                         )
                         low, high = await loop.run_in_executor(
                             None,
-                            lambda tp=tp: task._consumer.get_watermark_offsets(
-                                tp, timeout=1.0
-                            ),
+                            lambda tp=tp: task._consumer.get_watermark_offsets(tp, timeout=1.0),
                         )
                         committed_offset = (
                             committed[0].offset if committed and committed[0].offset >= 0 else high
                         )
                         lag = max(0, high - committed_offset)
-                        CONSUMER_LAG.labels(
-                            partition=f"{tp.topic}:{tp.partition}"
-                        ).set(lag)
+                        CONSUMER_LAG.labels(partition=f"{tp.topic}:{tp.partition}").set(lag)
                 except Exception as inner_err:
                     logger.debug("lag_monitor.partition_error", error=str(inner_err))
 
@@ -685,6 +683,7 @@ async def _monitor_consumer_lag(tasks: list[InferenceWorkerTask]) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 # Entrypoint
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 async def main() -> None:
     logger.info(
@@ -704,16 +703,14 @@ async def main() -> None:
         db_host = os.getenv("TIMESCALE_HOST", "timescaledb")
         db_port = os.getenv("TIMESCALE_PORT", "5432")
         db_name = os.getenv("TIMESCALE_DB", "anomaly_db")
-        database_url = (
-            f"postgresql+asyncpg://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
-        )
+        database_url = f"postgresql+asyncpg://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
     db_engine = create_async_engine(
         database_url,
-        pool_size=20,            # 5 per task + headroom
+        pool_size=20,  # 5 per task + headroom
         max_overflow=40,
-        pool_pre_ping=True,      # evict stale connections automatically
-        pool_recycle=3_600,      # recycle after 1 h to prevent idle timeouts
+        pool_pre_ping=True,  # evict stale connections automatically
+        pool_recycle=3_600,  # recycle after 1 h to prevent idle timeouts
         echo=False,
     )
     session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
@@ -747,12 +744,12 @@ async def main() -> None:
     shared_producer = Producer(
         {
             "bootstrap.servers": bootstrap,
-            "acks":              "all",           # wait for ISR acknowledgement
-            "batch.size":        131_072,         # 128 KB batch for throughput
-            "linger.ms":         10,              # 10 ms accumulation window
-            "compression.type":  "lz4",           # reduce network I/O
-            "retries":           5,
-            "retry.backoff.ms":  200,
+            "acks": "all",  # wait for ISR acknowledgement
+            "batch.size": 131_072,  # 128 KB batch for throughput
+            "linger.ms": 10,  # 10 ms accumulation window
+            "compression.type": "lz4",  # reduce network I/O
+            "retries": 5,
+            "retry.backoff.ms": 200,
         }
     )
 
@@ -788,18 +785,14 @@ async def main() -> None:
 
     for sig in (signal.SIGTERM, signal.SIGINT):
         try:
-            loop.add_signal_handler(
-                sig, lambda s=sig: _graceful_shutdown(s.name)
-            )
+            loop.add_signal_handler(sig, lambda s=sig: _graceful_shutdown(s.name))
         except NotImplementedError:
             # Windows does not support add_signal_handler
             pass
 
     # ── 8. Launch background coroutines ──────────────────────────────────────
     hot_reload_coro = asyncio.create_task(reload_handler.start(), name="hot-reload")
-    lag_monitor_coro = asyncio.create_task(
-        _monitor_consumer_lag(worker_tasks), name="lag-monitor"
-    )
+    lag_monitor_coro = asyncio.create_task(_monitor_consumer_lag(worker_tasks), name="lag-monitor")
 
     logger.info(
         "inference_worker.running",

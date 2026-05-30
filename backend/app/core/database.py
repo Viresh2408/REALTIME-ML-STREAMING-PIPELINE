@@ -1,6 +1,7 @@
 """
 SQLAlchemy 2.0 async engine + session factory (asyncpg driver)
 """
+
 from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -30,6 +31,7 @@ async_session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
+
     pass
 
 

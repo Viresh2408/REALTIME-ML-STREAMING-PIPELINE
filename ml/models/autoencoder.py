@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -15,14 +14,14 @@ class AutoencoderArchitecture(nn.Module):
             nn.Linear(512, 256),
             nn.ReLU(),
             nn.Linear(256, 128),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.decoder = nn.Sequential(
             nn.Linear(128, 256),
             nn.ReLU(),
             nn.Linear(256, 512),
             nn.ReLU(),
-            nn.Linear(512, input_dim)
+            nn.Linear(512, input_dim),
             # Omitting sigmoid so it works well with StandardScaler (unbounded)
         )
 
@@ -30,6 +29,7 @@ class AutoencoderArchitecture(nn.Module):
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded
+
 
 class Autoencoder:
     def __init__(self, input_dim: int) -> None:
@@ -74,7 +74,7 @@ class Autoencoder:
                 patience_counter += 1
 
             if patience_counter >= patience:
-                print(f"Early stopping triggered at epoch {epoch+1}")
+                print(f"Early stopping triggered at epoch {epoch + 1}")
                 break
 
         # Calculate dynamic threshold on training set
@@ -104,5 +104,5 @@ class Autoencoder:
 
         return {
             "score": float(recon_errors[0]) if len(recon_errors) == 1 else recon_errors.tolist(),
-            "is_anomaly": bool(is_anomaly[0]) if len(is_anomaly) == 1 else is_anomaly.tolist()
+            "is_anomaly": bool(is_anomaly[0]) if len(is_anomaly) == 1 else is_anomaly.tolist(),
         }

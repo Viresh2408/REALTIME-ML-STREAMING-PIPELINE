@@ -16,14 +16,11 @@ class FeaturePipeline:
             "flow_duration",
             "fwd_packets/s",
             "bwd_packets/s",
-            "flag_counts"
+            "flag_counts",
         ]
 
         # Features requiring log1p transformation for skewness
-        self.skewed_features: list[str] = [
-            "packet_length",
-            "flow_duration"
-        ]
+        self.skewed_features: list[str] = ["packet_length", "flow_duration"]
 
         self.scaler = StandardScaler()
         self.is_fitted: bool = False
@@ -75,7 +72,7 @@ class FeaturePipeline:
             "s3",
             endpoint_url=f"http://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}",
             aws_access_key_id=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123")
+            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123"),
         )
 
         # Ensure bucket exists
@@ -93,7 +90,7 @@ class FeaturePipeline:
             "s3",
             endpoint_url=f"http://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}",
             aws_access_key_id=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123")
+            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123"),
         )
         buffer = BytesIO()
         s3.download_fileobj(bucket_name, object_name, buffer)

@@ -4,6 +4,7 @@ Architecture: Section 5 — Event generator
 Trigger: Scheduled (APScheduler) or external webhook
 Output: Kafka raw-events topic messages (Avro-encoded)
 """
+
 from __future__ import annotations
 
 import json

@@ -13,22 +13,27 @@ from agents.env_loader import load_env
 
 load_env()
 
+
 class TimescaleDBWriterAgent:
     def __init__(self) -> None:
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
         self.topic = os.getenv("KAFKA_SCORED_EVENTS_TOPIC", "scored-events")
 
         # asyncpg requires postgresql:// instead of postgresql+asyncpg://
-        self.db_url = os.getenv("DATABASE_URL", "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db")
+        self.db_url = os.getenv(
+            "DATABASE_URL", "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db"
+        )
         if self.db_url.startswith("postgresql+asyncpg://"):
             self.db_url = self.db_url.replace("postgresql+asyncpg://", "postgresql://")
 
-        self.consumer = Consumer({
-            'bootstrap.servers': bootstrap_servers,
-            'group.id': os.getenv("KAFKA_WRITER_GROUP_ID", "timescaledb-writer-group"),
-            'auto.offset.reset': 'earliest',
-            'enable.auto.commit': False
-        })
+        self.consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap_servers,
+                "group.id": os.getenv("KAFKA_WRITER_GROUP_ID", "timescaledb-writer-group"),
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": False,
+            }
+        )
 
         self.batch_size = 500
         self.flush_interval = 0.1  # 100ms
@@ -54,10 +59,15 @@ class TimescaleDBWriterAgent:
 
                 records = [
                     (
-                        e["event_id"], e["source_id"],
-                        json.dumps(e.get("features", {})), e["event_time"],
-                        e["anomaly_score"], e["is_anomaly"], e["model_version"]
-                    ) for e in batch
+                        e["event_id"],
+                        e["source_id"],
+                        json.dumps(e.get("features", {})),
+                        e["event_time"],
+                        e["anomaly_score"],
+                        e["is_anomaly"],
+                        e["model_version"],
+                    )
+                    for e in batch
                 ]
 
                 await conn.executemany(query, records)
@@ -78,30 +88,33 @@ class TimescaleDBWriterAgent:
         print("TimescaleDBWriterAgent started...")
         try:
             while self.running:
-                msg = self.consumer.poll(0.01) # Short poll
+                msg = self.consumer.poll(0.01)  # Short poll
 
                 if msg is not None and not msg.error():
                     val = msg.value()
                     if val is not None:
-                        event = json.loads(val.decode('utf-8'))
+                        event = json.loads(val.decode("utf-8"))
                         self.buffer.append(event)
                         self.consumer.commit(message=msg, asynchronous=True)
 
                 current_time = asyncio.get_event_loop().time()
                 time_elapsed = current_time - last_flush_time
 
-                if len(self.buffer) >= self.batch_size or (time_elapsed >= self.flush_interval and self.buffer):
+                if len(self.buffer) >= self.batch_size or (
+                    time_elapsed >= self.flush_interval and self.buffer
+                ):
                     await self._flush_buffer(pool)
                     last_flush_time = current_time
 
         finally:
             self.running = False
-            await self._flush_buffer(pool) # Final flush
+            await self._flush_buffer(pool)  # Final flush
             await pool.close()
             self.consumer.close()
 
     def stop(self) -> None:
         self.running = False
+
 
 if __name__ == "__main__":
     agent = TimescaleDBWriterAgent()

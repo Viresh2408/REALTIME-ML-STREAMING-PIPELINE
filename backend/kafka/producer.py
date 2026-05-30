@@ -17,7 +17,7 @@ class AsyncKafkaProducer:
             "bootstrap.servers": bootstrap_servers,
             "batch.size": 65536,
             "linger.ms": 5,
-            "acks": "all"
+            "acks": "all",
         }
         self.producer = Producer(producer_conf)
 
@@ -31,20 +31,18 @@ class AsyncKafkaProducer:
 
     def _get_raw_event_serializer(self):
         if self.raw_event_serializer is None:
-            schema_str = self.schema_registry_client.get_latest_version("raw-events-value").schema.schema_str
-            self.raw_event_serializer = AvroSerializer(
-                self.schema_registry_client,
-                schema_str
-            )
+            schema_str = self.schema_registry_client.get_latest_version(
+                "raw-events-value"
+            ).schema.schema_str
+            self.raw_event_serializer = AvroSerializer(self.schema_registry_client, schema_str)
         return self.raw_event_serializer
 
     def _get_alert_serializer(self):
         if self.alert_serializer is None:
-            schema_str = self.schema_registry_client.get_latest_version("alerts-value").schema.schema_str
-            self.alert_serializer = AvroSerializer(
-                self.schema_registry_client,
-                schema_str
-            )
+            schema_str = self.schema_registry_client.get_latest_version(
+                "alerts-value"
+            ).schema.schema_str
+            self.alert_serializer = AvroSerializer(self.schema_registry_client, schema_str)
         return self.alert_serializer
 
     def _delivery_report(self, err, msg):
@@ -64,8 +62,10 @@ class AsyncKafkaProducer:
             self.producer.produce(
                 topic="raw-events",
                 key=str(event_data.get("event_id")),
-                value=serializer(event_data, SerializationContext("raw-events-value", MessageField.VALUE)),
-                on_delivery=self._delivery_report
+                value=serializer(
+                    event_data, SerializationContext("raw-events-value", MessageField.VALUE)
+                ),
+                on_delivery=self._delivery_report,
             )
             self.producer.poll(0)
 
@@ -81,8 +81,10 @@ class AsyncKafkaProducer:
             self.producer.produce(
                 topic="alerts",
                 key=str(alert_data.get("alert_id")),
-                value=serializer(alert_data, SerializationContext("alerts-value", MessageField.VALUE)),
-                on_delivery=self._delivery_report
+                value=serializer(
+                    alert_data, SerializationContext("alerts-value", MessageField.VALUE)
+                ),
+                on_delivery=self._delivery_report,
             )
             self.producer.poll(0)
 

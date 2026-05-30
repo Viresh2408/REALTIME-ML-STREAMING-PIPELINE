@@ -11,10 +11,13 @@ from agents.env_loader import load_env
 
 load_env()
 
+
 class HealthAgent:
     def __init__(self) -> None:
         self.running = False
-        self.db_url = os.getenv("DATABASE_URL", "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db")
+        self.db_url = os.getenv(
+            "DATABASE_URL", "postgresql://worker_rw:WorkerRw_SecurePass2!@localhost:5432/anomaly_db"
+        )
         if self.db_url.startswith("postgresql+asyncpg://"):
             self.db_url = self.db_url.replace("postgresql+asyncpg://", "postgresql://")
 
@@ -24,7 +27,7 @@ class HealthAgent:
     async def check_kafka(self) -> bool:
         """Ping Kafka Admin Client to ensure cluster is reachable."""
         try:
-            admin = AdminClient({'bootstrap.servers': self.kafka_servers})
+            admin = AdminClient({"bootstrap.servers": self.kafka_servers})
             cluster_metadata = admin.list_topics(timeout=5)
             return len(cluster_metadata.topics) > 0
         except Exception as e:
@@ -44,7 +47,9 @@ class HealthAgent:
 
     async def alert_orchestrator(self, service: str) -> None:
         """Alerts LangGraph Orchestrator or logging mechanism about failures."""
-        print(f"[CRITICAL] Service '{service}' is down! Triggering Orchestrator recovery mechanisms.")
+        print(
+            f"[CRITICAL] Service '{service}' is down! Triggering Orchestrator recovery mechanisms."
+        )
 
     async def run(self) -> None:
         self.running = True
@@ -66,6 +71,7 @@ class HealthAgent:
 
     def stop(self) -> None:
         self.running = False
+
 
 if __name__ == "__main__":
     agent = HealthAgent()

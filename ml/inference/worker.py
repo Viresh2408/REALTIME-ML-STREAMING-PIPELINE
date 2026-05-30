@@ -2,6 +2,7 @@
 ML Inference Worker — container entry point
 Starts: TimescaleDB writer + ML inference Kafka consumer loops
 """
+
 from __future__ import annotations
 
 import asyncio

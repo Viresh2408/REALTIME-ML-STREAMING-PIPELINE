@@ -1,6 +1,7 @@
 """
 Application Lifespan — startup/shutdown event handlers
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

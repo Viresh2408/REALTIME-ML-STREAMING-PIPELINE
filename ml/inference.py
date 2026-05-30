@@ -16,11 +16,12 @@ class InferenceEngine:
         if version == "latest":
             try:
                 import boto3
+
                 s3 = boto3.client(
                     "s3",
                     endpoint_url=f"http://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}",
                     aws_access_key_id=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-                    aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123")
+                    aws_secret_access_key=os.getenv("MINIO_SECRET_KEY", "miniopassword123"),
                 )
                 bucket_name = os.getenv("MINIO_BUCKET_MODELS", "ml-models")
                 response = s3.list_objects_v2(Bucket=bucket_name, Prefix="pipeline/pipeline_")
@@ -43,7 +44,9 @@ class InferenceEngine:
         """Hot-reload model and pipeline without restarting the service."""
         print(f"Reloading model version: {version}...")
         try:
-            self.pipeline.load(bucket_name="ml-models", object_name=f"pipeline/pipeline_{version}.joblib")
+            self.pipeline.load(
+                bucket_name="ml-models", object_name=f"pipeline/pipeline_{version}.joblib"
+            )
             self.model.load_from_minio(version=version)
             print("Successfully reloaded model and pipeline.")
         except Exception as e:
@@ -86,7 +89,7 @@ class InferenceEngine:
             "anomaly_score": score,
             "is_anomaly": is_anomaly,
             "model_version": "isolation_forest_v1",
-            "processed_at": int(time.time() * 1000)
+            "processed_at": int(time.time() * 1000),
         }
 
         latency_ms = (time.time() - start_time) * 1000
