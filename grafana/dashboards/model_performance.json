@@ -1,0 +1,110 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "min": 0,
+          "max": 1
+        }
+      },
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT evaluation_date AS time, precision AS \"Precision\", recall AS \"Recall\", f1_score AS \"F1-Score\" FROM (SELECT 'v1.0.0'::text AS model_version, NOW() - INTERVAL '5 days' AS evaluation_date, 0.95::float8 AS precision, 0.92::float8 AS recall, 0.93::float8 AS f1_score UNION ALL SELECT 'v1.1.0'::text AS model_version, NOW() - INTERVAL '3 days' AS evaluation_date, 0.97::float8 AS precision, 0.94::float8 AS recall, 0.95::float8 AS f1_score UNION ALL SELECT 'v2.0.0'::text AS model_version, NOW() AS evaluation_date, 0.98::float8 AS precision, 0.96::float8 AS recall, 0.97::float8 AS f1_score) AS mock_model_versions ORDER BY evaluation_date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "title": "Precision, Recall, and F1-Score Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" }
+        }
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 0 },
+      "id": 2,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT NOW() AS time, model_version AS \"Active Model\" FROM anomaly.anomaly_events ORDER BY event_time DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Model Version",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 9 },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT job_id AS \"Job ID\", status AS \"Status\", reason AS \"Reason\", force AS \"Force\", created_at AS \"Created At\", completed_at AS \"Completed At\", error AS \"Error\" FROM anomaly.retrain_jobs ORDER BY created_at DESC LIMIT 50",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "title": "Training & Retraining Job History",
+      "type": "table"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["anomaly-detection", "model", "performance", "timescaledb"],
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "timezone": "browser",
+  "title": "Model Performance",
+  "uid": "model-performance",
+  "version": 1
+}

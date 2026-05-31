@@ -1,0 +1,212 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "requests_per_sec",
+          "min": 0
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT time_bucket('10 seconds', event_time) AS time, COUNT(*) / 10.0 AS events_per_sec FROM anomaly.anomaly_events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "title": "Event Ingestion Rate (events/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3.0 },
+              { "color": "red", "value": 5.0 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT time_bucket('10 seconds', event_time) AS time, ROUND(100.0 * SUM(CASE WHEN is_anomaly THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS anomaly_rate_pct FROM anomaly.anomaly_events WHERE event_time >= NOW() - INTERVAL '5 minutes' GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "title": "Anomaly Rate (%) - Last 5 Minutes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1.0 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT NOW() AS time, COUNT(*) AS active_alerts FROM anomaly.alerts WHERE status = 'ACTIVE'",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Alerts Count",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "s",
+          "min": 0
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+          "expr": "histogram_quantile(0.95, sum(rate(ml_inference_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 Latency",
+          "refId": "A"
+        }
+      ],
+      "title": "P95 Inference Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 500 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "id": 5,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+          "expr": "sum(kafka_consumergroup_lag{topic=\"raw-events\"}) or vector(0)",
+          "legendFormat": "Lag",
+          "refId": "A"
+        }
+      ],
+      "title": "Consumer Lag (raw-events)",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "id": 6,
+      "options": {
+        "orientation": "horizontal",
+        "barRadius": 0.4,
+        "showValue": "always",
+        "groupWidth": 0.7
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb-uid" },
+          "rawSql": "SELECT source_id, COUNT(*) AS event_count FROM anomaly.anomaly_events WHERE event_time >= NOW() - INTERVAL '1 hour' GROUP BY source_id ORDER BY event_count DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "title": "Events per source_id - Last 1 Hour",
+      "type": "barchart"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["anomaly-detection", "overview", "timescaledb", "prometheus"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "timezone": "browser",
+  "title": "Anomaly Detection Overview",
+  "uid": "overview-dashboard",
+  "version": 1
+}

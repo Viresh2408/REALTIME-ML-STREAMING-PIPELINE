@@ -1,0 +1,69 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: "Anomaly Detection Alerts"
+    folder: "Anomaly Detection"
+    interval: 10s
+    rules:
+      - uid: "anomaly-rate-alert"
+        title: "Anomaly Rate Exceeds 5%"
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: timescaledb-uid
+            model:
+              rawSql: "SELECT NOW() AS time, ROUND(100.0 * SUM(CASE WHEN is_anomaly THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS anomaly_rate FROM anomaly.anomaly_events WHERE event_time >= NOW() - INTERVAL '2 minutes'"
+              format: "table"
+          - refId: B
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: "__expr__"
+            model:
+              type: classic_conditions
+              conditions:
+                - evaluator:
+                    params:
+                      - 5.0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+        noDataState: NoData
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: "High anomaly rate detected"
+          description: "The rolling anomaly rate over the last 2 minutes is above the 5% threshold."
+        labels:
+          severity: critical
+
+contactPoints:
+  - orgId: 1
+    name: "Slack Receiver"
+    receivers:
+      - uid: "slack-channel-alerts"
+        type: "slack"
+        settings:
+          url: "http://localhost/mock-slack-webhook"
+
+policies:
+  - orgId: 1
+    receiver: "Slack Receiver"
+    group_by: ["alertname", "severity"]
+    group_wait: 10s
+    group_interval: 30s
+    repeat_interval: 1h
+    routes:
+      - receiver: "Slack Receiver"
+        object_matchers:
+          - ["severity", "=", "critical"]
