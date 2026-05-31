@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import alerts, anomalies, auth, events, model, websocket
+from app.api.v1 import alerts, anomalies, auth, events, kafka, model, websocket
 
 api_router = APIRouter()
 
@@ -16,3 +16,4 @@ api_router.include_router(anomalies.router, prefix="/anomalies", tags=["Anomalie
 api_router.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 api_router.include_router(model.router, prefix="/model", tags=["Model Management"])
 api_router.include_router(websocket.router, prefix="/ws", tags=["WebSocket"])
+api_router.include_router(kafka.router, prefix="/kafka", tags=["Kafka Operations"])

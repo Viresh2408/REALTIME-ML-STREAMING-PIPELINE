@@ -3,11 +3,17 @@ import json
 import os
 import sys
 
-import aiohttp
 from confluent_kafka import Consumer
 
 # Ensure project root is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agents.alerting import (
+    AlertEvent,
+    EmailNotifier,
+    PagerDutyNotifier,
+    SeverityClassifier,
+    SlackNotifier,
+)
 from agents.env_loader import load_env
 
 load_env()
@@ -22,114 +28,123 @@ class NotificationAgent:
             {
                 "bootstrap.servers": bootstrap_servers,
                 "group.id": os.getenv("KAFKA_NOTIFY_GROUP_ID", "notification-agent-group"),
-                "auto.offset.reset": "earliest",
+                "auto.offset.reset": os.getenv("KAFKA_AUTO_OFFSET_RESET", "earliest"),
                 "enable.auto.commit": False,
             }
         )
 
-        self.slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL", "")
-        self.sendgrid_api_key = os.getenv("SENDGRID_API_KEY", "")
-        self.pagerduty_routing_key = os.getenv("PAGERDUTY_ROUTING_KEY", "")
+        self.classifier = SeverityClassifier()
+
+        # Slack Configuration
+        self.slack_webhook = os.getenv("SLACK_WEBHOOK_URL", "")
+        self.has_slack = bool(
+            self.slack_webhook and "placeholder" not in self.slack_webhook.lower()
+        )
+        if self.has_slack:
+            self.slack_notifier = SlackNotifier(webhook_url=self.slack_webhook)
+
+        # Email Configuration
+        self.sendgrid_key = os.getenv("SENDGRID_API_KEY", "")
+        self.email_to = os.getenv("ALERT_EMAIL_TO") or os.getenv("ALERT_EMAIL_RECIPIENTS", "")
+        self.has_email = bool(
+            self.sendgrid_key
+            and self.email_to
+            and "placeholder" not in self.sendgrid_key.lower()
+        )
+        if self.has_email:
+            emails = [addr.strip() for addr in self.email_to.split(",") if addr.strip()]
+            self.email_notifier = EmailNotifier(
+                api_key=self.sendgrid_key, to_addresses=emails
+            )
+
+        # PagerDuty Configuration
+        self.pd_key = os.getenv("PAGERDUTY_ROUTING_KEY") or os.getenv(
+            "PAGERDUTY_INTEGRATION_KEY", ""
+        )
+        self.has_pd = bool(self.pd_key and "placeholder" not in self.pd_key.lower())
+        if self.has_pd:
+            self.pd_notifier = PagerDutyNotifier(routing_key=self.pd_key)
+
         self.running = False
-
-    async def notify_slack(self, session: aiohttp.ClientSession, alert: dict) -> None:
-        if not self.slack_webhook_url:
-            print(f"[MOCK SLACK] {alert['severity']} alert for {alert['event_id']}")
-            return
-
-        payload = {
-            "text": f"*{alert['severity']} Anomaly Detected!*\nScore: {alert['score']}\nEvent ID: {alert['event_id']}"
-        }
-        async with session.post(self.slack_webhook_url, json=payload) as resp:
-            if resp.status >= 400:
-                print(f"Slack notification failed: {resp.status}")
-
-    async def notify_email(self, session: aiohttp.ClientSession, alert: dict) -> None:
-        if not self.sendgrid_api_key:
-            print(f"[MOCK EMAIL] {alert['severity']} alert for {alert['event_id']}")
-            return
-
-        headers = {
-            "Authorization": f"Bearer {self.sendgrid_api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "personalizations": [
-                {"to": [{"email": os.getenv("ALERT_EMAIL_TO", "admin@example.com")}]}
-            ],
-            "from": {"email": os.getenv("ALERT_EMAIL_FROM", "system@example.com")},
-            "subject": f"[{alert['severity']}] Anomaly Alert",
-            "content": [
-                {
-                    "type": "text/plain",
-                    "value": f"Anomaly score: {alert['score']}\nEvent ID: {alert['event_id']}",
-                }
-            ],
-        }
-        async with session.post(
-            "https://api.sendgrid.com/v3/mail/send", headers=headers, json=payload
-        ) as resp:
-            if resp.status >= 400:
-                print(f"SendGrid email failed: {resp.status}")
-
-    async def notify_pagerduty(self, session: aiohttp.ClientSession, alert: dict) -> None:
-        if not self.pagerduty_routing_key:
-            print(f"[MOCK PAGERDUTY] {alert['severity']} alert for {alert['event_id']}")
-            return
-
-        payload = {
-            "routing_key": self.pagerduty_routing_key,
-            "event_action": "trigger",
-            "payload": {
-                "summary": f"CRITICAL Anomaly: {alert['score']}",
-                "source": alert.get("source_id", "ML-Streaming-Pipeline"),
-                "severity": "critical",
-            },
-        }
-        async with session.post("https://events.pagerduty.com/v2/enqueue", json=payload) as resp:
-            if resp.status >= 400:
-                print(f"PagerDuty trigger failed: {resp.status}")
 
     async def run(self) -> None:
         self.running = True
         self.consumer.subscribe([self.topic])
         print("NotificationAgent started...")
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                while self.running:
-                    msg = self.consumer.poll(1.0)
-                    if msg is None or msg.error():
-                        await asyncio.sleep(0.01)
-                        continue
+        try:
+            while self.running:
+                msg = self.consumer.poll(0.1)
+                if msg is None:
+                    await asyncio.sleep(0.01)
+                    continue
 
+                if msg.error():
+                    print(f"Consumer error: {msg.error()}")
+                    await asyncio.sleep(0.01)
+                    continue
+
+                try:
                     val = msg.value()
                     if val is None:
+                        self.consumer.commit(message=msg, asynchronous=True)
                         continue
 
-                    try:
-                        alert = json.loads(val.decode("utf-8"))
-                        severity = alert.get("severity")
+                    alert_dict = json.loads(val.decode("utf-8"))
+                    alert = AlertEvent.model_validate(alert_dict)
+                    print(
+                        f"Received alert event: {alert.alert_id} (severity={alert.severity.value})"
+                    )
 
-                        tasks = []
-                        if severity in ["MEDIUM", "HIGH", "CRITICAL"]:
-                            tasks.append(self.notify_slack(session, alert))
+                    tasks = []
 
-                        if severity in ["HIGH", "CRITICAL"]:
-                            tasks.append(self.notify_email(session, alert))
+                    # 1. Slack routing (MEDIUM+)
+                    if self.classifier.requires_slack(alert.severity):
+                        if self.has_slack:
+                            tasks.append(self.slack_notifier.send_alert(alert))
+                        else:
+                            print(
+                                f"[MOCK SLACK] [{alert.severity.value}] "
+                                f"source_id={alert.source_id} - score: {alert.score:.4f} "
+                                f"({alert.burst_count} HIGH/min)"
+                            )
 
-                        if severity == "CRITICAL":
-                            tasks.append(self.notify_pagerduty(session, alert))
+                    # 2. Email routing (HIGH+)
+                    if self.classifier.requires_email(alert.severity):
+                        if self.has_email:
+                            tasks.append(self.email_notifier.send_alert(alert))
+                        else:
+                            print(
+                                f"[MOCK EMAIL] Anomaly Alert - {alert.severity.value} "
+                                f"source_id={alert.source_id} - score: {alert.score:.4f}"
+                            )
 
-                        if tasks:
-                            await asyncio.gather(*tasks)
+                    # 3. PagerDuty routing (CRITICAL only)
+                    if self.classifier.requires_pagerduty(alert.severity):
+                        if self.has_pd:
+                            tasks.append(self.pd_notifier.trigger_incident(alert))
+                        else:
+                            print(
+                                f"[MOCK PAGERDUTY] CRITICAL Anomaly: "
+                                f"source_id={alert.source_id} - score: {alert.score:.4f}"
+                            )
 
-                        self.consumer.commit(message=msg)
-                    except Exception as e:
-                        print(f"Notification error: {e}")
-            finally:
-                self.running = False
-                self.consumer.close()
+                    if tasks:
+                        # Gather all active notifications concurrently
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                        for r in results:
+                            if isinstance(r, Exception):
+                                print(f"Notification channel dispatch error: {r}")
+
+                    self.consumer.commit(message=msg, asynchronous=True)
+
+                except Exception as e:
+                    print(f"Error in NotificationAgent loop: {e}")
+                    await asyncio.sleep(0.01)
+
+        finally:
+            self.running = False
+            self.consumer.close()
 
     def stop(self) -> None:
         self.running = False
@@ -137,4 +152,7 @@ class NotificationAgent:
 
 if __name__ == "__main__":
     agent = NotificationAgent()
-    asyncio.run(agent.run())
+    try:
+        asyncio.run(agent.run())
+    except KeyboardInterrupt:
+        print("Stopping NotificationAgent...")
