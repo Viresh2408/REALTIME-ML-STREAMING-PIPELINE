@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+from typing import Literal
 
 import joblib
 import mlflow
@@ -25,7 +26,7 @@ def train_isolation_forest(
     data: np.ndarray,
     contamination: float = 0.1,
     n_estimators: int = 100,
-    max_samples: str | int = "auto",
+    max_samples: Literal["auto"] | int | float = "auto",
     random_state: int = 42,
     artifact_path: str = "/app/artifacts",
     model_version: str = "v1",

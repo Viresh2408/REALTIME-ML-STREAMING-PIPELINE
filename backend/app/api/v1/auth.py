@@ -112,7 +112,7 @@ async def blacklist_token(jti: str, expires_in_seconds: int) -> None:
     """Store token ID in Redis blacklist with expiration."""
     try:
         client = redis_pool.client
-        await client.setex(f"blacklist:{jti}", expires_in_seconds, "1")
+        await client.set(f"blacklist:{jti}", "1", ex=expires_in_seconds)
     except Exception as exc:
         logger.error("Redis blacklist set failed", error=str(exc))
 

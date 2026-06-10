@@ -22,11 +22,11 @@ from agents.alerting.slack_notifier import SlackNotifier
 
 __all__ = [
     "AlertEvent",
-    "Severity",
-    "SeverityClassifier",
     "BurstDetector",
-    "SilenceManager",
-    "SlackNotifier",
     "EmailNotifier",
     "PagerDutyNotifier",
+    "Severity",
+    "SeverityClassifier",
+    "SilenceManager",
+    "SlackNotifier",
 ]

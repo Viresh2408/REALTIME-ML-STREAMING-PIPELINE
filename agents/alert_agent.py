@@ -3,7 +3,7 @@ import json
 import os
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 import asyncpg
 import redis
@@ -11,7 +11,7 @@ from confluent_kafka import Consumer, Producer
 
 # Ensure project root is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from agents.alerting import BurstDetector, SeverityClassifier, SilenceManager, AlertEvent
+from agents.alerting import AlertEvent, BurstDetector, SeverityClassifier, SilenceManager
 from agents.env_loader import load_env
 
 load_env()
@@ -123,7 +123,7 @@ class AlertAgent:
                         score=score,
                         severity=severity,
                         burst_count=burst_count,
-                        created_at=datetime.now(timezone.utc),
+                        created_at=datetime.now(datetime.UTC),
                     )
 
                     # 5. Write to TimescaleDB

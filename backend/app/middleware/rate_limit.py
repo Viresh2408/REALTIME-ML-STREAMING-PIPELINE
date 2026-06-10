@@ -6,6 +6,7 @@ Uses Redis sorted sets (zset) with transaction pipelines for atomic operations.
 
 from __future__ import annotations
 
+import inspect
 import time
 
 import structlog
@@ -66,8 +67,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         try:
             client = redis_pool.client
-            # Redis Pipeline for atomic Zset operations
-            pipe = client.pipeline()
+
+            # redis.asyncio.pipeline() is synchronous; fakeredis.aioredis.pipeline()
+            # is a coroutine — resolve whichever form we get.
+            _pipe1 = client.pipeline()
+            pipe = await _pipe1 if inspect.isawaitable(_pipe1) else _pipe1
             # Remove expired elements
             pipe.zremrangebyscore(redis_key, 0, clear_before)
             # Count elements in window
@@ -84,7 +88,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 )
 
             # Add current request timestamp and set TTL
-            pipe = client.pipeline()
+            _pipe2 = client.pipeline()
+            pipe = await _pipe2 if inspect.isawaitable(_pipe2) else _pipe2
             pipe.zadd(redis_key, {str(now): now})
             pipe.expire(redis_key, int(self.window_seconds * 2) or 2)
             await pipe.execute()

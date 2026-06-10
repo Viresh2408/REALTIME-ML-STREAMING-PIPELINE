@@ -4,7 +4,9 @@
 # ============================================================
 
 .PHONY: up down build logs test shell-backend shell-db \
-        topics migrate lint format check clean ps help
+        topics migrate lint format check clean ps help \
+        bootstrap smoke-test train down-v build-cache \
+        test-unit test-integration test-load
 
 COMPOSE      := docker compose
 ENV_FILE     := .env
@@ -159,6 +161,39 @@ migrate: ## Apply TimescaleDB schema migrations
 	$(COMPOSE) --project-name $(PROJECT_NAME) exec fastapi-backend \
 		python -m backend.app.core.migrate
 	@echo "✅  Migrations complete."
+
+# ─────────────────────────────────────────────────────────────
+# bootstrap — first-run system initialization
+# ─────────────────────────────────────────────────────────────
+bootstrap: ## Run first-time system initialization (topics + schemas + DB + training)
+	@echo "Bootstrapping system..."
+	@test -f $(ENV_FILE) || { echo "ERROR: .env not found. Copy .env.example to .env first."; exit 1; }
+	@if [ -f scripts/bootstrap.sh ]; then bash scripts/bootstrap.sh; \
+	 else powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1; fi
+	@echo "Bootstrap complete."
+
+# ─────────────────────────────────────────────────────────────
+# smoke-test — end-to-end smoke test
+# ─────────────────────────────────────────────────────────────
+smoke-test: ## Run end-to-end smoke test (PASS/FAIL per check)
+	@echo "Running smoke test..."
+	@if [ -f scripts/smoke_test.sh ]; then bash scripts/smoke_test.sh; \
+	 else powershell -ExecutionPolicy Bypass -File scripts/smoke_test.ps1; fi
+
+# ─────────────────────────────────────────────────────────────
+# train — run ML training pipeline
+# ─────────────────────────────────────────────────────────────
+train: ## Run ML training pipeline (IsolationForest on CICIDS2017)
+	@echo "🤖  Starting ML training pipeline..."
+	$(COMPOSE) --project-name $(PROJECT_NAME) run --rm \
+		-e MLFLOW_TRACKING_URI=http://mlflow:5000 \
+		-e MLFLOW_S3_ENDPOINT_URL=http://minio:9000 \
+		-e AWS_ACCESS_KEY_ID=$${MINIO_ACCESS_KEY} \
+		-e AWS_SECRET_ACCESS_KEY=$${MINIO_SECRET_KEY} \
+		-v "$$(pwd)/ml:/app/ml" \
+		ml-inference-worker \
+		python /app/ml/train.py
+	@echo "✅  Training complete. Check MLflow at http://localhost:5000"
 
 # ─────────────────────────────────────────────────────────────
 # ps — show running containers

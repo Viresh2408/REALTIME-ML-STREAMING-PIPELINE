@@ -23,16 +23,8 @@ except ImportError:
 SKIP_REASON = "testcontainers or Docker not available in this environment"
 
 
-@pytest.fixture(scope="module")
-def kafka_container() -> Generator:
-    if not KAFKA_AVAILABLE:
-        pytest.skip(SKIP_REASON)
-
-    with KafkaContainer("confluentinc/cp-kafka:7.6.1") as container:
-        yield container
-
-
 @pytest.mark.integration
+@pytest.mark.testcontainers
 @pytest.mark.skipif(not KAFKA_AVAILABLE, reason=SKIP_REASON)
 class TestKafkaRoundTrip:
     """Integration: produce to raw-events, consume and verify message."""

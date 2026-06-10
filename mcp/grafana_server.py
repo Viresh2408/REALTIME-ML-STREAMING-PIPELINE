@@ -14,6 +14,12 @@ GRAFANA_URL = os.environ.get("GRAFANA_URL", "http://grafana:3000")
 GRAFANA_API_KEY = os.environ.get("GRAFANA_API_KEY", "")
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe for docker-compose healthcheck."""
+    return {"status": "ok", "service": "mcp-grafana-server"}
+
+
 def get_grafana_headers():
     headers = {"Content-Type": "application/json"}
     if GRAFANA_API_KEY:

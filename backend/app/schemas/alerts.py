@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AlertSeverity(str, Enum):
@@ -27,6 +27,8 @@ class AlertStatus(str, Enum):
 class AlertOut(BaseModel):
     """Output details of a system alert."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     alert_id: UUID = Field(..., description="Unique alert UUID")
     source_id: str = Field(..., description="Target source identifier")
     severity: AlertSeverity = Field(..., description="Classification: LOW, MEDIUM, HIGH, CRITICAL")
@@ -38,8 +40,6 @@ class AlertOut(BaseModel):
     created_at: datetime = Field(..., description="Alert creation time")
     acknowledged_at: datetime | None = Field(default=None, description="Time acknowledged")
     resolved_at: datetime | None = Field(default=None, description="Time resolved")
-
-    model_config = {"from_attributes": True}
 
 
 class AlertAcknowledgeIn(BaseModel):
@@ -67,11 +67,11 @@ class AlertSilenceIn(BaseModel):
 class AlertSilenceOut(BaseModel):
     """Silencing action result."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     silence_id: UUID
     source_id: str | None
     duration_minutes: int
     reason: str
     created_at: datetime
     expires_at: datetime
-
-    model_config = {"from_attributes": True}

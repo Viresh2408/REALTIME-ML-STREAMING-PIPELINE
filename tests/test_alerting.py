@@ -22,10 +22,9 @@ Workflow.docx §4 thresholds enforced:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -58,7 +57,7 @@ def _make_alert(
         score=score,
         severity=severity,
         burst_count=burst_count,
-        created_at=datetime(2026, 5, 31, 9, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2026, 5, 31, 9, 0, 0, tzinfo=datetime.UTC),
     )
 
 
@@ -640,8 +639,10 @@ class TestEmailNotifier:
         notifier = self._make_notifier()
         alert = _make_alert(severity=Severity.HIGH)
 
-        err = MagicMock(); err.status_code = 500
-        ok = MagicMock(); ok.status_code = 202
+        err = MagicMock()
+        err.status_code = 500
+        ok = MagicMock()
+        ok.status_code = 202
 
         with patch("agents.alerting.email_notifier.httpx.AsyncClient") as mock_cls:
             mock_client = AsyncMock()
@@ -655,7 +656,8 @@ class TestEmailNotifier:
         notifier = self._make_notifier()
         alert = _make_alert(severity=Severity.HIGH)
 
-        err = MagicMock(); err.status_code = 503
+        err = MagicMock()
+        err.status_code = 503
 
         with patch("agents.alerting.email_notifier.httpx.AsyncClient") as mock_cls:
             mock_client = AsyncMock()
@@ -816,8 +818,10 @@ class TestPagerDutyNotifier:
         notifier = self._make_notifier()
         alert = _make_alert(severity=Severity.CRITICAL)
 
-        err = MagicMock(); err.status_code = 500
-        ok = MagicMock(); ok.status_code = 202
+        err = MagicMock()
+        err.status_code = 500
+        ok = MagicMock()
+        ok.status_code = 202
 
         with patch("agents.alerting.pagerduty_notifier.httpx.AsyncClient") as mock_cls:
             mock_client = AsyncMock()
@@ -831,7 +835,8 @@ class TestPagerDutyNotifier:
         notifier = self._make_notifier()
         alert = _make_alert(severity=Severity.CRITICAL)
 
-        err = MagicMock(); err.status_code = 503
+        err = MagicMock()
+        err.status_code = 503
 
         with patch("agents.alerting.pagerduty_notifier.httpx.AsyncClient") as mock_cls:
             mock_client = AsyncMock()
@@ -965,7 +970,8 @@ class TestAlertPipelineIntegration:
             base_backoff_s=0.0,
         )
         alert = _make_alert(severity=severity, score=0.85)
-        ok = MagicMock(); ok.status_code = 202
+        ok = MagicMock()
+        ok.status_code = 202
 
         with patch("agents.alerting.email_notifier.httpx.AsyncClient") as mock_cls:
             mock_client = AsyncMock()
@@ -990,12 +996,14 @@ class TestAlertPipelineIntegration:
         assert severity == Severity.CRITICAL
 
         alert = _make_alert(severity=severity, score=0.72, burst_count=10)
-        ok = MagicMock(); ok.status_code = 202
+        ok = MagicMock()
+        ok.status_code = 202
 
         pd = PagerDutyNotifier(routing_key="key", base_backoff_s=0.0)
 
         with patch("agents.alerting.pagerduty_notifier.httpx.AsyncClient") as pc:
-            pm = AsyncMock(); pm.post.return_value = ok
+            pm = AsyncMock()
+            pm.post.return_value = ok
             pc.return_value.__aenter__.return_value = pm
 
             await pd.trigger_incident(alert)

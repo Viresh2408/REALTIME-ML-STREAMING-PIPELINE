@@ -1,7 +1,7 @@
 import os
 import sys
 
-import requests
+import httpx
 
 
 def download_cicids2017() -> None:
@@ -22,21 +22,21 @@ def download_cicids2017() -> None:
     print(f"Downloading CICIDS2017 dataset from {url}...")
 
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
+        with httpx.stream("GET", url, follow_redirects=True) as response:
+            response.raise_for_status()
 
-        total_size = int(response.headers.get("content-length", 0))
-        downloaded_size = 0
+            total_size = int(response.headers.get("content-length", 0))
+            downloaded_size = 0
 
-        with open(output_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded_size += len(chunk)
-                    if total_size > 0:
-                        percent = int(downloaded_size * 100 / total_size)
-                        sys.stdout.write(f"\rDownload progress: {percent}%")
-                        sys.stdout.flush()
+            with open(output_path, "wb") as f:
+                for chunk in response.iter_bytes(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded_size += len(chunk)
+                        if total_size > 0:
+                            percent = int(downloaded_size * 100 / total_size)
+                            sys.stdout.write(f"\rDownload progress: {percent}%")
+                            sys.stdout.flush()
 
         print(f"\nSuccessfully downloaded to {output_path}")
     except Exception as e:

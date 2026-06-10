@@ -84,7 +84,7 @@ class PagerDutyNotifier:
     def _resolved_key(self) -> str:
         key = self._routing_key or os.getenv("PAGERDUTY_ROUTING_KEY", "")
         if not key:
-            raise EnvironmentError(
+            raise OSError(
                 "PAGERDUTY_ROUTING_KEY is not configured. "
                 "Set the env var or pass routing_key to PagerDutyNotifier."
             )

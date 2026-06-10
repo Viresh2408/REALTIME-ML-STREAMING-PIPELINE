@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import sys
 import time
+
 import httpx
 
 BASE_URL = "http://localhost:8000"
@@ -22,12 +23,20 @@ STEP_FAIL = "[FAIL]"
 STEP_INFO = "[INFO]"
 
 
-def ok(msg):   print(f"  {STEP_OK}  {msg}")
-def fail(msg): print(f"  {STEP_FAIL}  {msg}"); sys.exit(1)
-def info(msg): print(f"  {STEP_INFO}  {msg}")
+def ok(msg: str) -> None:
+    print(f"  {STEP_OK}  {msg}")
 
 
-def main():
+def fail(msg: str) -> None:
+    print(f"  {STEP_FAIL}  {msg}")
+    sys.exit(1)
+
+
+def info(msg: str) -> None:
+    print(f"  {STEP_INFO}  {msg}")
+
+
+def main() -> None:
     print("\n=== Step 1: Authenticating as viewer ===")
     auth_resp = httpx.post(
         f"{BASE_URL}/api/v1/auth/token",
@@ -82,7 +91,10 @@ def main():
                         break
                 if found_alert:
                     break
-                info(f"  Attempt {attempts}: not visible yet (found {len(alerts)} other critical alerts)")
+                info(
+                    f"  Attempt {attempts}: not visible yet "
+                    f"(found {len(alerts)} other critical alerts)"
+                )
             else:
                 info(f"  Attempt {attempts}: HTTP {alerts_resp.status_code}")
         except Exception as e:
@@ -93,7 +105,10 @@ def main():
     duration = time.time() - start_time
     print("\n=== Step 4: Verification Result ===")
     if found_alert:
-        ok(f"PASS - Alert successfully verified in {duration:.2f} seconds after {attempts} poll(s)!")
+        ok(
+            f"PASS - Alert successfully verified in {duration:.2f} seconds "
+            f"after {attempts} poll(s)!"
+        )
         print(f"    Alert ID : {found_alert['alert_id']}")
         print(f"    Source ID: {found_alert['source_id']}")
         print(f"    Severity : {found_alert['severity']}")
@@ -101,7 +116,10 @@ def main():
         print(f"    Score    : {found_alert['score']}")
         sys.exit(0)
     else:
-        fail(f"FAIL - Alert for source_id={source_id} was not found in GET /api/v1/alerts within 10 seconds.")
+        fail(
+            f"FAIL - Alert for source_id={source_id} was not found "
+            "in GET /api/v1/alerts within 10 seconds."
+        )
 
 
 if __name__ == "__main__":

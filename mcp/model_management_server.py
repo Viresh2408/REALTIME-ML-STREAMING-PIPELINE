@@ -13,6 +13,11 @@ server = Server("model-management-mcp")
 BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://fastapi-backend:8000/api/v1")
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe for docker-compose healthcheck."""
+    return {"status": "ok", "service": "mcp-model-server"}
+
 @server.tool()
 async def get_model_status() -> dict[str, Any]:
     """Get current model version, load time, and inference latency."""

@@ -183,7 +183,7 @@ class EmailNotifier:
     def _resolved_api_key(self) -> str:
         key = self._api_key or os.getenv("SENDGRID_API_KEY", "")
         if not key:
-            raise EnvironmentError(
+            raise OSError(
                 "SENDGRID_API_KEY is not configured. "
                 "Set the env var or pass api_key to EmailNotifier."
             )
@@ -194,7 +194,7 @@ class EmailNotifier:
             return self._to_addresses
         raw = os.getenv("ALERT_EMAIL_TO", "")
         if not raw:
-            raise EnvironmentError(
+            raise OSError(
                 "ALERT_EMAIL_TO is not configured. "
                 "Set the env var or pass to_addresses to EmailNotifier."
             )

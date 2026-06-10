@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LabelEnum(str, Enum):
@@ -95,7 +95,7 @@ class AnomalyEventOut(BaseModel):
     model_version: str = Field(..., description="ML model version used for scoring")
     processed_at: datetime = Field(..., description="Ingestion processing timestamp")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
 
 class LabelEventIn(BaseModel):
@@ -118,4 +118,4 @@ class EventLabelOut(BaseModel):
     note: str | None
     labeled_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)

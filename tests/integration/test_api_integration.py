@@ -13,17 +13,7 @@ from testcontainers.postgres import PostgresContainer
 TIMESCALE_IMAGE = "timescale/timescaledb:2.15.3-pg16"
 
 
-@pytest.fixture(scope="session")
-def timescaledb_container():
-    """Spin up a TimescaleDB container for the integration test session."""
-    with PostgresContainer(
-        image=TIMESCALE_IMAGE,
-        username="test_user",
-        password="test_password",
-        dbname="test_db",
-        port=5432,
-    ) as container:
-        yield container
+# Redundant timescaledb_container fixture removed to use the central session-scoped one from conftest.py
 
 
 @pytest.mark.integration

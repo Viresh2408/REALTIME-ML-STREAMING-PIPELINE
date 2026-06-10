@@ -10,6 +10,7 @@ env:
   PYTHON_VERSION: "3.12"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/anomaly-detection
+  IMAGE_LC: "" # Set dynamically in the build-and-push job
   # Opt into Node.js 24 now to avoid deprecation warnings
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 

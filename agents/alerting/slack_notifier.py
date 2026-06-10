@@ -77,7 +77,7 @@ class SlackNotifier:
     def _resolved_url(self) -> str:
         url = self._webhook_url or os.getenv("SLACK_WEBHOOK_URL", "")
         if not url:
-            raise EnvironmentError(
+            raise OSError(
                 "SLACK_WEBHOOK_URL is not configured. "
                 "Set the env var or pass webhook_url to SlackNotifier."
             )

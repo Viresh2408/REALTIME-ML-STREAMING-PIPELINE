@@ -25,6 +25,12 @@ async def get_db_pool():
     return app.state.pool
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe for docker-compose healthcheck."""
+    return {"status": "ok", "service": "mcp-anomaly-server"}
+
+
 @server.tool()
 async def get_recent_anomalies(
     limit: int = 50,

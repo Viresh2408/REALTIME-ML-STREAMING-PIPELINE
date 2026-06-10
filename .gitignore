@@ -64,6 +64,7 @@ mlruns/
 .env
 *.env
 !.env.example
+config.json
 
 # ── IDE ───────────────────────────────────────────────────────
 .vscode/

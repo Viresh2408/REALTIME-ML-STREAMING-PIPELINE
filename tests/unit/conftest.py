@@ -28,17 +28,38 @@ which is exactly what the tests need.
 from __future__ import annotations
 
 import sys
+import warnings
 from unittest.mock import MagicMock
 
 
 def _mock_mlflow_if_unimportable() -> None:
-    """Replace mlflow with a MagicMock when it cannot be imported cleanly."""
+    """Replace mlflow with a MagicMock when it cannot be imported cleanly.
+
+    mlflow 2.13+ defines ``PromptModelConfig(BaseModel)`` with a ``model_name``
+    field, which triggers a Pydantic ``UserWarning`` about the protected
+    ``model_`` namespace.  When pytest is invoked with ``-W error::UserWarning``
+    that warning is promoted to an exception *before* the later
+    ``ModuleNotFoundError`` (missing ``opentelemetry.semconv.attributes``) fires.
+    We install a targeted ``ignore`` filter for the duration of the import probe
+    so the collection-time error disappears without affecting any other
+    ``UserWarning`` checks in the test suite.
+    """
     if "mlflow" in sys.modules:
         # Already imported (or already mocked) -- nothing to do.
         return
 
     try:
-        import mlflow  # noqa: F401  -- try the real package first
+        # Suppress pydantic's protected-namespace UserWarning emitted by
+        # mlflow.entities.model_registry.prompt_version.PromptModelConfig
+        # before the real import error (opentelemetry missing) surfaces.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"Field .* has conflict with protected namespace",
+                category=UserWarning,
+                module=r"pydantic.*",
+            )
+            import mlflow
     except (ImportError, ModuleNotFoundError):
         pass
     else:

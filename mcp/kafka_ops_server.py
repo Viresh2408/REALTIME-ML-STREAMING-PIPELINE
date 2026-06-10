@@ -14,6 +14,12 @@ server = Server("kafka-ops-mcp")
 KAFKA_BROKERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe for docker-compose healthcheck."""
+    return {"status": "ok", "service": "mcp-kafka-server"}
+
+
 def get_admin_client():
     return AdminClient({"bootstrap.servers": KAFKA_BROKERS})
 

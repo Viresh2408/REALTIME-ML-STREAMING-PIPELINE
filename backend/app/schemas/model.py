@@ -7,11 +7,13 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ModelStatusOut(BaseModel):
     """Details of the currently running ML model."""
+
+    model_config = ConfigDict(protected_namespaces=())
 
     model_version: str = Field(..., description="Active model identifier")
     load_time: datetime = Field(..., description="When the current model was loaded")
@@ -23,6 +25,8 @@ class ModelStatusOut(BaseModel):
 
 class ModelVersionOut(BaseModel):
     """Model version log entry."""
+
+    model_config = ConfigDict(protected_namespaces=())
 
     model_version: str = Field(..., description="Unique model identifier")
     accuracy: float | None = Field(default=None, description="Accuracy rating")
@@ -49,7 +53,7 @@ class ModelRetrainJobOut(BaseModel):
     completed_at: datetime | None = Field(default=None, description="Completion timestamp")
     error: str | None = Field(default=None, description="Errors logged during processing")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModelRollbackIn(BaseModel):
@@ -61,6 +65,8 @@ class ModelRollbackIn(BaseModel):
 
 class ModelMetricsOut(BaseModel):
     """Evaluation metrics for a model version."""
+
+    model_config = ConfigDict(protected_namespaces=())
 
     model_version: str = Field(..., description="Target model identifier")
     precision: float = Field(..., description="Model Precision score")
