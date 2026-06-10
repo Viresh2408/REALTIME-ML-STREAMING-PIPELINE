@@ -18,6 +18,7 @@ async def health() -> dict[str, str]:
     """Liveness probe for docker-compose healthcheck."""
     return {"status": "ok", "service": "mcp-model-server"}
 
+
 @server.tool()
 async def get_model_status() -> dict[str, Any]:
     """Get current model version, load time, and inference latency."""

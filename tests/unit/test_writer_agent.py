@@ -54,15 +54,17 @@ class TestWriterAgent:
 
         # Add 500 events
         for i in range(500):
-            agent.buffer.append({
-                "event_id": f"evt-{i}",
-                "source_id": "sensor-1",
-                "features": [0.1, 0.2],
-                "event_time": 1000 + i,
-                "anomaly_score": 0.8,
-                "is_anomaly": True,
-                "model_version": "v1",
-            })
+            agent.buffer.append(
+                {
+                    "event_id": f"evt-{i}",
+                    "source_id": "sensor-1",
+                    "features": [0.1, 0.2],
+                    "event_time": 1000 + i,
+                    "anomaly_score": 0.8,
+                    "is_anomaly": True,
+                    "model_version": "v1",
+                }
+            )
 
         # Buffer should be full
         assert len(agent.buffer) == 500
@@ -88,15 +90,17 @@ class TestWriterAgent:
 
         # Add just 5 events
         for i in range(5):
-            agent.buffer.append({
-                "event_id": f"evt-{i}",
-                "source_id": "sensor-1",
-                "features": [0.1, 0.2],
-                "event_time": 1000 + i,
-                "anomaly_score": 0.8,
-                "is_anomaly": True,
-                "model_version": "v1",
-            })
+            agent.buffer.append(
+                {
+                    "event_id": f"evt-{i}",
+                    "source_id": "sensor-1",
+                    "features": [0.1, 0.2],
+                    "event_time": 1000 + i,
+                    "anomaly_score": 0.8,
+                    "is_anomaly": True,
+                    "model_version": "v1",
+                }
+            )
 
         assert len(agent.buffer) == 5
 
@@ -118,24 +122,24 @@ class TestWriterAgent:
         mock_connection = AsyncMock()
         mock_pool.acquire = AsyncMock()
         mock_pool.acquire.return_value.__aenter__.return_value = mock_connection
-        mock_connection.executemany = AsyncMock(
-            side_effect=Exception("Connection timeout")
-        )
+        mock_connection.executemany = AsyncMock(side_effect=Exception("Connection timeout"))
         mock_pool_factory.return_value = mock_pool
 
         agent = TimescaleDBWriterAgent()
 
         # Add events to buffer
         for i in range(10):
-            agent.buffer.append({
-                "event_id": f"evt-{i}",
-                "source_id": "sensor-1",
-                "features": [0.1, 0.2],
-                "event_time": 1000 + i,
-                "anomaly_score": 0.8,
-                "is_anomaly": True,
-                "model_version": "v1",
-            })
+            agent.buffer.append(
+                {
+                    "event_id": f"evt-{i}",
+                    "source_id": "sensor-1",
+                    "features": [0.1, 0.2],
+                    "event_time": 1000 + i,
+                    "anomaly_score": 0.8,
+                    "is_anomaly": True,
+                    "model_version": "v1",
+                }
+            )
 
         initial_count = len(agent.buffer)
 
@@ -148,9 +152,7 @@ class TestWriterAgent:
 
     @patch("agents.writer_agent.Consumer")
     @patch("agents.writer_agent.asyncpg.create_pool")
-    async def test_successful_insert_commits_offset(
-        self, mock_pool_factory, mock_consumer_cls
-    ):
+    async def test_successful_insert_commits_offset(self, mock_pool_factory, mock_consumer_cls):
         """Test that successful insert would commit offset."""
         from agents.writer_agent import TimescaleDBWriterAgent
 
@@ -170,7 +172,23 @@ class TestWriterAgent:
         msg = MagicMock()
         msg.error = MagicMock(return_value=None)
         msg.value = MagicMock(
-            return_value=json.dumps({
+            return_value=json.dumps(
+                {
+                    "event_id": "evt-1",
+                    "source_id": "sensor-1",
+                    "features": [0.1, 0.2],
+                    "event_time": 1000,
+                    "anomaly_score": 0.8,
+                    "is_anomaly": True,
+                    "model_version": "v1",
+                }
+            ).encode("utf-8")
+        )
+
+        # Process message would commit offset on success
+        # (This is verified in the run() method of the agent)
+        agent.buffer.append(
+            {
                 "event_id": "evt-1",
                 "source_id": "sensor-1",
                 "features": [0.1, 0.2],
@@ -178,20 +196,8 @@ class TestWriterAgent:
                 "anomaly_score": 0.8,
                 "is_anomaly": True,
                 "model_version": "v1",
-            }).encode("utf-8")
+            }
         )
-
-        # Process message would commit offset on success
-        # (This is verified in the run() method of the agent)
-        agent.buffer.append({
-            "event_id": "evt-1",
-            "source_id": "sensor-1",
-            "features": [0.1, 0.2],
-            "event_time": 1000,
-            "anomaly_score": 0.8,
-            "is_anomaly": True,
-            "model_version": "v1",
-        })
 
         # Flush should succeed
         await agent._flush_buffer(mock_pool)
@@ -202,9 +208,7 @@ class TestWriterAgent:
 
     @patch("agents.writer_agent.Consumer")
     @patch("agents.writer_agent.asyncpg.create_pool")
-    async def test_empty_buffer_does_not_flush(
-        self, mock_pool_factory, mock_consumer_cls
-    ):
+    async def test_empty_buffer_does_not_flush(self, mock_pool_factory, mock_consumer_cls):
         """Test that empty buffer doesn't attempt database operations."""
         from agents.writer_agent import TimescaleDBWriterAgent
 
@@ -228,9 +232,7 @@ class TestWriterAgent:
 
     @patch("agents.writer_agent.Consumer")
     @patch("agents.writer_agent.asyncpg.create_pool")
-    async def test_buffer_accumulates_messages(
-        self, mock_pool_factory, mock_consumer_cls
-    ):
+    async def test_buffer_accumulates_messages(self, mock_pool_factory, mock_consumer_cls):
         """Test that buffer accumulates messages correctly."""
         from agents.writer_agent import TimescaleDBWriterAgent
 
@@ -244,23 +246,23 @@ class TestWriterAgent:
 
         # Add multiple events
         for i in range(10):
-            agent.buffer.append({
-                "event_id": f"evt-{i}",
-                "source_id": "sensor-1",
-                "features": [0.1, 0.2],
-                "event_time": 1000 + i,
-                "anomaly_score": 0.8,
-                "is_anomaly": True,
-                "model_version": "v1",
-            })
+            agent.buffer.append(
+                {
+                    "event_id": f"evt-{i}",
+                    "source_id": "sensor-1",
+                    "features": [0.1, 0.2],
+                    "event_time": 1000 + i,
+                    "anomaly_score": 0.8,
+                    "is_anomaly": True,
+                    "model_version": "v1",
+                }
+            )
 
         assert len(agent.buffer) == 10
 
     @patch("agents.writer_agent.Consumer")
     @patch("agents.writer_agent.asyncpg.create_pool")
-    async def test_consumer_configuration(
-        self, mock_pool_factory, mock_consumer_cls
-    ):
+    async def test_consumer_configuration(self, mock_pool_factory, mock_consumer_cls):
         """Test that consumer is configured correctly."""
         from agents.writer_agent import TimescaleDBWriterAgent
 
@@ -277,9 +279,7 @@ class TestWriterAgent:
 
     @patch("agents.writer_agent.Consumer")
     @patch("agents.writer_agent.asyncpg.create_pool")
-    async def test_database_connection_url_parsing(
-        self, mock_pool_factory, mock_consumer_cls
-    ):
+    async def test_database_connection_url_parsing(self, mock_pool_factory, mock_consumer_cls):
         """Test that database URL is correctly parsed for asyncpg."""
         from agents.writer_agent import TimescaleDBWriterAgent
 

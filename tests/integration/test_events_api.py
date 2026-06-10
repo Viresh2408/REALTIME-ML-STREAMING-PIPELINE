@@ -33,6 +33,7 @@ from tests.integration.conftest_mocks import (
 
 # ── Shared async test-client helper ──────────────────────────────────────────
 
+
 @asynccontextmanager
 async def events_client(
     db_session_mock: AsyncMock | None = None,
@@ -43,6 +44,7 @@ async def events_client(
     """
     try:
         import fakeredis.aioredis as fake_aio
+
         _redis = fake_aio.FakeRedis(decode_responses=True)
     except ImportError:
         _redis = AsyncMock()
@@ -80,6 +82,7 @@ async def events_client(
 
 # ── Test data helpers ─────────────────────────────────────────────────────────
 
+
 def _single_event_payload(**kwargs) -> dict:
     return {
         "source_id": kwargs.get("source_id", "sensor-42"),
@@ -91,6 +94,7 @@ def _single_event_payload(**kwargs) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. test_post_event_returns_202_accepted
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_post_event_returns_202_accepted():
@@ -132,13 +136,16 @@ async def test_post_event_calls_kafka_produce_with_correct_topic():
 
     call_kwargs = kafka_mock.produce.call_args
     assert call_kwargs is not None
-    assert call_kwargs[1]["topic"] == settings.KAFKA_RAW_EVENTS_TOPIC or \
-           call_kwargs[0][0] == settings.KAFKA_RAW_EVENTS_TOPIC
+    assert (
+        call_kwargs[1]["topic"] == settings.KAFKA_RAW_EVENTS_TOPIC
+        or call_kwargs[0][0] == settings.KAFKA_RAW_EVENTS_TOPIC
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. test_post_event_batch_accepts_up_to_1000
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_post_event_batch_accepts_up_to_1000():
@@ -174,6 +181,7 @@ async def test_post_event_batch_accepts_up_to_1000():
 # 3. test_post_event_batch_rejects_over_1000
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_post_event_batch_rejects_over_1000():
     """
@@ -181,10 +189,7 @@ async def test_post_event_batch_rejects_over_1000():
     (Pydantic max_length=1000 on BatchEventsIn.events).
     """
     events_payload = {
-        "events": [
-            {"source_id": f"src-{i}", "feature_vector": [0.1, 0.2]}
-            for i in range(1001)
-        ]
+        "events": [{"source_id": f"src-{i}", "feature_vector": [0.1, 0.2]} for i in range(1001)]
     }
 
     async with events_client() as (client, _):
@@ -200,6 +205,7 @@ async def test_post_event_batch_rejects_over_1000():
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. test_get_event_by_id_returns_full_feature_vector
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_event_by_id_returns_full_feature_vector():
@@ -255,6 +261,7 @@ async def test_get_event_by_id_returns_404_when_missing():
 # 5. test_label_event_stores_ground_truth
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_label_event_stores_ground_truth():
     """
@@ -308,6 +315,7 @@ async def test_label_event_stores_ground_truth():
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. test_label_event_invalid_label_returns_422
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_label_event_invalid_label_returns_422():
@@ -371,12 +379,11 @@ async def test_post_event_with_nan_feature_returns_422():
         # We test with Infinity (JSON supports it through some parsers but Pydantic rejects)
         # Use the float("inf") approach serialized — this triggers field_validator
         import json
+
         # Sending a payload where feature_vector contains a non-numeric string triggers 422
         response = await client.post(
             "/api/v1/events",
-            content=json.dumps(
-                {"source_id": "test", "feature_vector": ["not-a-float"]}
-            ),
+            content=json.dumps({"source_id": "test", "feature_vector": ["not-a-float"]}),
             headers={**auth_headers("viewer"), "Content-Type": "application/json"},
         )
 
@@ -388,9 +395,7 @@ async def test_batch_event_with_single_event_succeeds():
     """
     POST /api/v1/events/batch with exactly 1 event (min_length=1) should return 202.
     """
-    payload = {
-        "events": [{"source_id": "single-sensor", "feature_vector": [0.5, 0.6]}]
-    }
+    payload = {"events": [{"source_id": "single-sensor", "feature_vector": [0.5, 0.6]}]}
     kafka_mock = MagicMock()
 
     async with events_client(kafka_producer=kafka_mock) as (client, _):

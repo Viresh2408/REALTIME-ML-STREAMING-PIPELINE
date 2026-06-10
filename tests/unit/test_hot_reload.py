@@ -40,9 +40,7 @@ class TestHotReload:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_reload_downloads_new_model(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_reload_downloads_new_model(self, mock_joblib_load, mock_path_cls):
         """Test that reload loads model from new artifact path."""
         from ml.inference.engine import InferenceEngine
 
@@ -53,10 +51,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["v1.0", "v2.0"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model_v1 = MagicMock()
@@ -72,9 +74,7 @@ class TestHotReload:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_reload_updates_model_version_attribute(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_reload_updates_model_version_attribute(self, mock_joblib_load, mock_path_cls):
         """Test that reload updates _model_version attribute."""
         from ml.inference.engine import InferenceEngine
 
@@ -85,10 +85,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["old-v1", "new-v2"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model = MagicMock()
@@ -102,9 +106,7 @@ class TestHotReload:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_concurrent_infer_during_reload_succeeds(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_concurrent_infer_during_reload_succeeds(self, mock_joblib_load, mock_path_cls):
         """Test that concurrent predictions work during reload."""
         from ml.inference.engine import InferenceEngine
 
@@ -115,10 +117,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["v1.0", "v2.0"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model_v1 = MagicMock()
@@ -147,9 +153,7 @@ class TestHotReload:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_reload_clears_model_during_transition(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_reload_clears_model_during_transition(self, mock_joblib_load, mock_path_cls):
         """Test that reload clears model before loading new one."""
         from ml.inference.engine import InferenceEngine
 
@@ -160,10 +164,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["v1", "v2"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model_v1 = MagicMock()
@@ -181,9 +189,7 @@ class TestHotReload:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_reload_handles_missing_model_gracefully(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_reload_handles_missing_model_gracefully(self, mock_joblib_load, mock_path_cls):
         """Test that reload handles missing model file gracefully."""
         from ml.inference.engine import InferenceEngine
 
@@ -197,10 +203,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(return_value="v1")
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file_v1, mock_version_file,  # Initial (found)
-            mock_model_file_v2, mock_version_file,  # Reload (not found)
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file_v1,
+                mock_version_file,  # Initial (found)
+                mock_model_file_v2,
+                mock_version_file,  # Reload (not found)
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model = MagicMock()
@@ -230,10 +240,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["v1", "v2"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model = MagicMock()
@@ -243,14 +257,12 @@ class TestHotReload:
         engine = InferenceEngine()
 
         # Verify lock exists
-        assert hasattr(engine, '_lock')
+        assert hasattr(engine, "_lock")
         assert isinstance(engine._lock, asyncio.Lock)
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_reload_with_custom_artifact_path(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_reload_with_custom_artifact_path(self, mock_joblib_load, mock_path_cls):
         """Test reload with custom artifact path."""
         from ml.inference.engine import InferenceEngine
 
@@ -261,10 +273,14 @@ class TestHotReload:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["v1", "v2"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model = MagicMock()
@@ -281,9 +297,7 @@ class TestHotReload:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_multiple_sequential_reloads(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_multiple_sequential_reloads(self, mock_joblib_load, mock_path_cls):
         """Test multiple sequential hot reloads."""
         from ml.inference.engine import InferenceEngine
 
@@ -292,16 +306,20 @@ class TestHotReload:
         mock_model_file.exists.return_value = True
         mock_version_file = MagicMock()
         mock_version_file.exists.return_value = True
-        mock_version_file.read_text = MagicMock(
-            side_effect=["v1", "v2", "v3", "v4"]
-        )
+        mock_version_file.read_text = MagicMock(side_effect=["v1", "v2", "v3", "v4"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial
-            mock_model_file, mock_version_file,  # Reload 1
-            mock_model_file, mock_version_file,  # Reload 2
-            mock_model_file, mock_version_file,  # Reload 3
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial
+                mock_model_file,
+                mock_version_file,  # Reload 1
+                mock_model_file,
+                mock_version_file,  # Reload 2
+                mock_model_file,
+                mock_version_file,  # Reload 3
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_models = [MagicMock() for _ in range(4)]

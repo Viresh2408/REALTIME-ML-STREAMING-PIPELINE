@@ -281,9 +281,7 @@ class TestBurstDetector:
         count = burst_detector.get_count("sensor-01")
         assert count == 7
 
-    def test_clear_deletes_key(
-        self, burst_detector: BurstDetector, redis_mock: MagicMock
-    ) -> None:
+    def test_clear_deletes_key(self, burst_detector: BurstDetector, redis_mock: MagicMock) -> None:
         burst_detector.clear("sensor-01")
         redis_mock.delete.assert_called_once_with("burst:sensor-01")
 
@@ -335,9 +333,7 @@ class TestSilenceManager:
         assert payload["reason"] == "maintenance"
         assert payload["source_id"] == "sensor-01"
 
-    def test_add_silence_invalid_duration_raises(
-        self, silence_manager: SilenceManager
-    ) -> None:
+    def test_add_silence_invalid_duration_raises(self, silence_manager: SilenceManager) -> None:
         with pytest.raises(ValueError, match="duration_minutes"):
             silence_manager.add_silence("sensor-01", duration_minutes=0, reason="bad")
 
@@ -846,9 +842,7 @@ class TestPagerDutyNotifier:
             with pytest.raises(RuntimeError, match="failed after 3 attempts"):
                 await notifier.trigger_incident(alert)
 
-    async def test_missing_routing_key_raises(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_missing_routing_key_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("PAGERDUTY_ROUTING_KEY", raising=False)
         notifier = PagerDutyNotifier(routing_key=None)
         alert = _make_alert(severity=Severity.CRITICAL)
@@ -866,9 +860,7 @@ class TestAlertEvent:
     """Validate the AlertEvent Pydantic model."""
 
     def test_default_alert_id_generated(self) -> None:
-        alert = AlertEvent(
-            event_id="e1", source_id="s1", score=0.91, severity=Severity.HIGH
-        )
+        alert = AlertEvent(event_id="e1", source_id="s1", score=0.91, severity=Severity.HIGH)
         assert len(alert.alert_id) == 36  # UUID4 string
 
     def test_severity_emoji_mapping(self) -> None:
@@ -898,15 +890,11 @@ class TestAlertEvent:
 
     def test_score_bounds_validation(self) -> None:
         with pytest.raises(Exception):
-            AlertEvent(
-                event_id="e1", source_id="s1", score=1.5, severity=Severity.CRITICAL
-            )
+            AlertEvent(event_id="e1", source_id="s1", score=1.5, severity=Severity.CRITICAL)
 
     def test_score_lower_bound(self) -> None:
         with pytest.raises(Exception):
-            AlertEvent(
-                event_id="e1", source_id="s1", score=-0.1, severity=Severity.NONE
-            )
+            AlertEvent(event_id="e1", source_id="s1", score=-0.1, severity=Severity.NONE)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -977,7 +965,7 @@ class TestAlertPipelineIntegration:
             mock_client = AsyncMock()
             mock_cls.return_value.__aenter__.return_value = mock_client
             mock_client.post.return_value = ok
-            await notifier.send_alert(alert)   # must be a no-op
+            await notifier.send_alert(alert)  # must be a no-op
             mock_client.post.assert_not_called()
 
         # Confirm PagerDutyNotifier.trigger_incident is a no-op for MEDIUM.

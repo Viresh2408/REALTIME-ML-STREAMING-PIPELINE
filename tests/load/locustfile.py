@@ -34,32 +34,33 @@ from locust.runners import MasterRunner, WorkerRunner
 
 # ── Feature vector generators ─────────────────────────────────────────────────
 
+
 def _random_network_features() -> dict[str, float]:
     """Generate synthetic CICIDS-style network flow features."""
     anomalous = random.random() < 0.05  # 5% anomaly rate
     mu = 8.0 if anomalous else 0.0
     sigma = 1.5 if anomalous else 0.5
     return {
-        "packet_length":     max(0.0, random.gauss(mu * 100 + 1500, sigma * 50)),
-        "flow_duration":     max(0.0, random.gauss(mu * 5000 + 10_000, sigma * 2000)),
-        "fwd_packets/s":     max(0.0, random.gauss(mu + 5.0, sigma)),
-        "bwd_packets/s":     max(0.0, random.gauss(mu + 3.0, sigma)),
-        "flag_counts":       max(0.0, random.gauss(mu + 1.0, 0.5)),
-        "price":             max(0.0, random.gauss(mu + 100.0, sigma * 10)),
-        "volume":            max(0.0, random.gauss(mu * 1000 + 5000, sigma * 500)),
-        "bid_ask_spread":    max(0.0, random.gauss(mu * 0.5 + 0.02, 0.01)),
-        "price_return_1m":   random.gauss(mu * 0.01, 0.005),
-        "volume_z_score":    random.gauss(mu, sigma),
-        "cpu_pct":           min(100.0, max(0.0, random.gauss(mu * 5 + 30.0, 10.0))),
-        "mem_pct":           min(100.0, max(0.0, random.gauss(mu * 3 + 40.0, 8.0))),
-        "disk_io_bytes":     max(0.0, random.gauss(mu * 100_000 + 50_000, 10_000)),
-        "net_rx_bytes":      max(0.0, random.gauss(mu * 50_000 + 100_000, 20_000)),
-        "error_rate":        min(1.0, max(0.0, random.gauss(mu * 0.1 + 0.01, 0.005))),
-        "hour_of_day":       float(random.randint(0, 23)),
-        "day_of_week":       float(random.randint(0, 6)),
-        "is_market_hours":   float(random.randint(0, 1)),
-        "rolling_mean_5m":   random.gauss(mu, sigma),
-        "rolling_std_5m":    max(0.0, random.gauss(sigma, 0.1)),
+        "packet_length": max(0.0, random.gauss(mu * 100 + 1500, sigma * 50)),
+        "flow_duration": max(0.0, random.gauss(mu * 5000 + 10_000, sigma * 2000)),
+        "fwd_packets/s": max(0.0, random.gauss(mu + 5.0, sigma)),
+        "bwd_packets/s": max(0.0, random.gauss(mu + 3.0, sigma)),
+        "flag_counts": max(0.0, random.gauss(mu + 1.0, 0.5)),
+        "price": max(0.0, random.gauss(mu + 100.0, sigma * 10)),
+        "volume": max(0.0, random.gauss(mu * 1000 + 5000, sigma * 500)),
+        "bid_ask_spread": max(0.0, random.gauss(mu * 0.5 + 0.02, 0.01)),
+        "price_return_1m": random.gauss(mu * 0.01, 0.005),
+        "volume_z_score": random.gauss(mu, sigma),
+        "cpu_pct": min(100.0, max(0.0, random.gauss(mu * 5 + 30.0, 10.0))),
+        "mem_pct": min(100.0, max(0.0, random.gauss(mu * 3 + 40.0, 8.0))),
+        "disk_io_bytes": max(0.0, random.gauss(mu * 100_000 + 50_000, 10_000)),
+        "net_rx_bytes": max(0.0, random.gauss(mu * 50_000 + 100_000, 20_000)),
+        "error_rate": min(1.0, max(0.0, random.gauss(mu * 0.1 + 0.01, 0.005))),
+        "hour_of_day": float(random.randint(0, 23)),
+        "day_of_week": float(random.randint(0, 6)),
+        "is_market_hours": float(random.randint(0, 1)),
+        "rolling_mean_5m": random.gauss(mu, sigma),
+        "rolling_std_5m": max(0.0, random.gauss(sigma, 0.1)),
         "deviation_from_mean": random.gauss(mu, sigma),
     }
 
@@ -72,6 +73,7 @@ def _random_feature_vector(n: int = 10) -> list[float]:
 
 
 # ── Locust User class ─────────────────────────────────────────────────────────
+
 
 class HighThroughputAPIUser(HttpUser):
     """
@@ -107,12 +109,14 @@ class HighThroughputAPIUser(HttpUser):
             # Add backend to path if needed
             import sys
             from pathlib import Path
+
             backend_dir = Path(__file__).parent.parent.parent / "backend"
             if str(backend_dir) not in sys.path:
                 sys.path.insert(0, str(backend_dir))
 
             from app.api.v1.auth import create_token
             from app.schemas.auth import UserRole
+
             self.token = create_token("viewer@example.com", UserRole.VIEWER)
         except Exception:
             self.token = ""
@@ -161,7 +165,7 @@ class HighThroughputAPIUser(HttpUser):
 # Track per-endpoint P95 targets (ms)
 _P95_TARGETS: dict[str, float] = {
     "POST /api/v1/events": 500.0,  # NFR-04
-    "GET /health": 50.0,           # must be < 50ms
+    "GET /health": 50.0,  # must be < 50ms
 }
 
 # Track throughput target (events/s)

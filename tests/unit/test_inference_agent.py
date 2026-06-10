@@ -64,12 +64,14 @@ class TestInferenceAgent:
         msg = MagicMock()
         msg.error = MagicMock(return_value=None)
         msg.value = MagicMock(
-            return_value=json.dumps({
-                "event_id": "evt-1",
-                "source_id": "sensor-1",
-                "features": [0.1, 0.2, 0.3],
-                "event_time": 1000,
-            }).encode("utf-8")
+            return_value=json.dumps(
+                {
+                    "event_id": "evt-1",
+                    "source_id": "sensor-1",
+                    "features": [0.1, 0.2, 0.3],
+                    "event_time": 1000,
+                }
+            ).encode("utf-8")
         )
 
         agent = MLInferenceAgent()

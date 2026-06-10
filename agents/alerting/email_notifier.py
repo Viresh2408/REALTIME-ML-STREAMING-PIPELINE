@@ -201,9 +201,8 @@ class EmailNotifier:
         return [addr.strip() for addr in raw.split(",") if addr.strip()]
 
     def _resolved_from(self) -> str:
-        return (
-            self._from_address
-            or os.getenv("ALERT_EMAIL_FROM", "system@anomaly-pipeline.internal")
+        return self._from_address or os.getenv(
+            "ALERT_EMAIL_FROM", "system@anomaly-pipeline.internal"
         )
 
     def _resolved_timeout(self) -> float:
@@ -264,9 +263,7 @@ class EmailNotifier:
             last_exc: Exception | None = None
             for attempt in range(1, self._max_attempts + 1):
                 try:
-                    response = await client.post(
-                        _SENDGRID_SEND_URL, headers=headers, json=payload
-                    )
+                    response = await client.post(_SENDGRID_SEND_URL, headers=headers, json=payload)
                     # SendGrid returns 202 Accepted on success
                     if response.status_code in (200, 202):
                         logger.info(

@@ -141,7 +141,9 @@ class AlertAgent:
                             alert.score,
                             alert.created_at,
                         )
-                    print(f"Saved active alert {alert.alert_id} (severity={alert.severity.value}) to DB")
+                    print(
+                        f"Saved active alert {alert.alert_id} (severity={alert.severity.value}) to DB"
+                    )
 
                     # 6. Publish to Kafka topic 'alerts'
                     self.producer.produce(

@@ -35,6 +35,7 @@ from ml.worker.inference_worker import ProductionInferenceEngine
 
 # ── Fixture ───────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture()
 def engine() -> ProductionInferenceEngine:
     """
@@ -75,6 +76,7 @@ def _make_event(
 
 
 # ── Test class ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 class TestInferenceLatency:
@@ -150,9 +152,7 @@ class TestHotReload:
     """
 
     @pytest.mark.asyncio
-    async def test_hot_reload_version_updated(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_hot_reload_version_updated(self, engine: ProductionInferenceEngine) -> None:
         """
         Simulate a hot-reload by acquiring the write lock, swapping the version
         string on the engine, and releasing it.
@@ -206,9 +206,7 @@ class TestHotReload:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         errors = [r for r in results if isinstance(r, Exception)]
-        assert not errors, (
-            f"Concurrent inference + hot-reload raised exceptions: {errors}"
-        )
+        assert not errors, f"Concurrent inference + hot-reload raised exceptions: {errors}"
 
     @pytest.mark.asyncio
     async def test_hot_reload_old_model_still_infers(
@@ -241,9 +239,7 @@ class TestMissingFeatures:
     """
 
     @pytest.mark.asyncio
-    async def test_missing_features_no_raise(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_missing_features_no_raise(self, engine: ProductionInferenceEngine) -> None:
         """
         An event with an empty features dict must not raise any exception.
         The imputation layer returns 0.0 for all missing columns.
@@ -256,9 +252,7 @@ class TestMissingFeatures:
         assert "is_anomaly" in result
 
     @pytest.mark.asyncio
-    async def test_partial_features_no_raise(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_partial_features_no_raise(self, engine: ProductionInferenceEngine) -> None:
         """
         An event with only 1 of the ~21 expected features must not raise.
         Missing features are filled with 0.0.
@@ -292,9 +286,7 @@ class TestMissingFeatures:
         assert 0.0 <= result["anomaly_score"] <= 1.0
 
     @pytest.mark.asyncio
-    async def test_none_event_features_key(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_none_event_features_key(self, engine: ProductionInferenceEngine) -> None:
         """
         An event dict with no 'features' key at all must not raise.
         The preprocessor must default to an empty dict and impute all columns.
@@ -320,9 +312,7 @@ class TestInferenceOutputContract:
     """
 
     @pytest.mark.asyncio
-    async def test_output_fields_present(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_output_fields_present(self, engine: ProductionInferenceEngine) -> None:
         """All Avro schema fields must be present in the scored event dict."""
         event = _make_event(
             event_id="contract-test-001",
@@ -357,14 +347,10 @@ class TestInferenceOutputContract:
             )
             result = await engine.infer(event)
             score = result["anomaly_score"]
-            assert 0.0 <= score <= 1.0, (
-                f"anomaly_score {score} out of bounds [0.0, 1.0]"
-            )
+            assert 0.0 <= score <= 1.0, f"anomaly_score {score} out of bounds [0.0, 1.0]"
 
     @pytest.mark.asyncio
-    async def test_event_passthrough_fields(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_event_passthrough_fields(self, engine: ProductionInferenceEngine) -> None:
         """
         event_id, source_id, and event_type from the raw event must pass through
         to the scored event unchanged.
@@ -381,9 +367,7 @@ class TestInferenceOutputContract:
         assert result["event_type"] == "financial_transaction"
 
     @pytest.mark.asyncio
-    async def test_batch_inference_matches_single(
-        self, engine: ProductionInferenceEngine
-    ) -> None:
+    async def test_batch_inference_matches_single(self, engine: ProductionInferenceEngine) -> None:
         """
         infer_batch() over N events must return N scored events in order.
         Each batch result must have the same fields as single infer() output.
@@ -392,9 +376,7 @@ class TestInferenceOutputContract:
         events = [_make_event(event_id=f"batch-{i:03d}") for i in range(n)]
         results = await engine.infer_batch(events)
 
-        assert len(results) == n, (
-            f"infer_batch() returned {len(results)} results for {n} inputs"
-        )
+        assert len(results) == n, f"infer_batch() returned {len(results)} results for {n} inputs"
         for i, result in enumerate(results):
             assert "anomaly_score" in result, f"result[{i}] missing anomaly_score"
             assert "is_anomaly" in result, f"result[{i}] missing is_anomaly"

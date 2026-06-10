@@ -212,6 +212,7 @@ class DatabaseSessionManager:
         Intended for testing / local dev; use Alembic for production migrations.
         """
         from sqlalchemy import text
+
         async with self.connect() as conn:
             await conn.execute(text("CREATE SCHEMA IF NOT EXISTS anomaly"))
             await conn.run_sync(Base.metadata.create_all)

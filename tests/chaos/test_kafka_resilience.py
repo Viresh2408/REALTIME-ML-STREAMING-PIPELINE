@@ -34,11 +34,13 @@ from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
 
 try:
     import docker  # type: ignore[import-untyped]
+
     DOCKER_AVAILABLE = True
 except ImportError:
     DOCKER_AVAILABLE = False
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _find_kafka_container(client: docker.DockerClient) -> docker.models.containers.Container | None:
     """Locate the running Kafka container by name heuristic."""
@@ -66,6 +68,7 @@ def _wait_for_broker_ready(bootstrap: str, timeout_s: float = 30.0) -> bool:
 
 
 # ── Test class ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.chaos
 @pytest.mark.testcontainers
@@ -112,15 +115,17 @@ class TestKafkaResilience:
         topic = f"chaos-resilience-{uuid.uuid4().hex[:8]}"
         group_id = f"chaos-group-{uuid.uuid4().hex[:8]}"
 
-        producer = Producer({
-            "bootstrap.servers": bootstrap,
-            "acks": "all",
-            "retries": 10,
-            "retry.backoff.ms": 500,
-            "message.timeout.ms": 25_000,   # 25s to account for the outage window
-            "request.timeout.ms": 20_000,
-            "socket.timeout.ms": 10_000,
-        })
+        producer = Producer(
+            {
+                "bootstrap.servers": bootstrap,
+                "acks": "all",
+                "retries": 10,
+                "retry.backoff.ms": 500,
+                "message.timeout.ms": 25_000,  # 25s to account for the outage window
+                "request.timeout.ms": 20_000,
+                "socket.timeout.ms": 10_000,
+            }
+        )
 
         sent_ids: list[str] = []
 
@@ -165,18 +170,20 @@ class TestKafkaResilience:
         print("[chaos] Producer flushed all buffered events post-recovery")
 
         # ── Phase 6: consume all events within 30s SLA ────────────────────────
-        consumer = Consumer({
-            "bootstrap.servers": bootstrap,
-            "group.id": group_id,
-            "auto.offset.reset": "earliest",
-            "enable.auto.commit": True,
-            "session.timeout.ms": 30_000,
-            "reconnect.backoff.max.ms": 5_000,
-        })
+        consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap,
+                "group.id": group_id,
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": True,
+                "session.timeout.ms": 30_000,
+                "reconnect.backoff.max.ms": 5_000,
+            }
+        )
         consumer.subscribe([topic])
 
         received_ids: list[str] = []
-        sla_deadline = time.time() + 30.0   # 30s reconnect SLA (NFR-02)
+        sla_deadline = time.time() + 30.0  # 30s reconnect SLA (NFR-02)
 
         while len(received_ids) < 10 and time.time() < sla_deadline:
             msg = consumer.poll(timeout=1.0)
@@ -197,9 +204,7 @@ class TestKafkaResilience:
 
         # ── Phase 7: assertions ────────────────────────────────────────────────
         elapsed = 30.0 - (sla_deadline - time.time())
-        print(
-            f"[chaos] Recovery complete: {len(received_ids)}/10 events in {elapsed:.1f}s"
-        )
+        print(f"[chaos] Recovery complete: {len(received_ids)}/10 events in {elapsed:.1f}s")
 
         assert len(received_ids) == 10, (
             f"[chaos] FAIL: Consumer recovered {len(received_ids)}/10 events within 30s. "
@@ -242,15 +247,17 @@ class TestKafkaResilience:
         producer.flush(timeout=10)
 
         # Start consumer
-        consumer = Consumer({
-            "bootstrap.servers": bootstrap,
-            "group.id": group_id,
-            "auto.offset.reset": "earliest",
-            "enable.auto.commit": True,
-            "session.timeout.ms": 10_000,
-            "reconnect.backoff.max.ms": 3_000,
-            "socket.timeout.ms": 5_000,
-        })
+        consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap,
+                "group.id": group_id,
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": True,
+                "session.timeout.ms": 10_000,
+                "reconnect.backoff.max.ms": 3_000,
+                "socket.timeout.ms": 5_000,
+            }
+        )
         consumer.subscribe([topic])
 
         reconnect_times: list[float] = []
@@ -308,9 +315,7 @@ class TestKafkaResilience:
         assert reconnect_elapsed <= 30.0, (
             f"Consumer did not reconnect within 30s SLA (took {reconnect_elapsed:.1f}s)"
         )
-        print(
-            f"[chaos] Consumer reconnected within {reconnect_elapsed:.1f}s after outage ✓"
-        )
+        print(f"[chaos] Consumer reconnected within {reconnect_elapsed:.1f}s after outage ✓")
 
     # ─────────────────────────────────────────────────────────────────────────
     # T-052-C: Compare produced vs consumed offsets — zero loss verification
@@ -334,11 +339,13 @@ class TestKafkaResilience:
         n_events = 200
 
         # ── Produce N events ──────────────────────────────────────────────────
-        producer = Producer({
-            "bootstrap.servers": bootstrap,
-            "acks": "all",
-            "retries": 5,
-        })
+        producer = Producer(
+            {
+                "bootstrap.servers": bootstrap,
+                "acks": "all",
+                "retries": 5,
+            }
+        )
         produced_ids = [str(uuid.uuid4()) for _ in range(n_events)]
         for eid in produced_ids:
             producer.produce(
@@ -347,16 +354,16 @@ class TestKafkaResilience:
                 value=json.dumps({"event_id": eid, "ts": int(time.time() * 1000)}),
             )
         remaining = producer.flush(timeout=20)
-        assert remaining == 0, (
-            f"Producer queue not fully flushed: {remaining} messages remain"
-        )
+        assert remaining == 0, f"Producer queue not fully flushed: {remaining} messages remain"
 
         # ── Record high-watermark offsets ─────────────────────────────────────
-        probe_consumer = Consumer({
-            "bootstrap.servers": bootstrap,
-            "group.id": f"probe-{uuid.uuid4().hex[:6]}",
-            "auto.offset.reset": "earliest",
-        })
+        probe_consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap,
+                "group.id": f"probe-{uuid.uuid4().hex[:6]}",
+                "auto.offset.reset": "earliest",
+            }
+        )
         probe_consumer.subscribe([topic])
 
         # Allow partition assignment
@@ -378,12 +385,14 @@ class TestKafkaResilience:
         )
 
         # ── Consume all events ────────────────────────────────────────────────
-        consumer = Consumer({
-            "bootstrap.servers": bootstrap,
-            "group.id": group_id,
-            "auto.offset.reset": "earliest",
-            "enable.auto.commit": True,
-        })
+        consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap,
+                "group.id": group_id,
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": True,
+            }
+        )
         consumer.subscribe([topic])
 
         consumed_count = 0
@@ -399,6 +408,4 @@ class TestKafkaResilience:
             f"Offset verification FAIL: produced={n_events}, consumed={consumed_count}. "
             f"Lost: {n_events - consumed_count} messages"
         )
-        print(
-            f"[offset] PASS: consumed_count={consumed_count} == produced={n_events} ✓"
-        )
+        print(f"[offset] PASS: consumed_count={consumed_count} == produced={n_events} ✓")

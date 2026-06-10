@@ -39,9 +39,7 @@ class TestInferenceEngineLoad:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    def test_engine_loads_model_from_artifact_path(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    def test_engine_loads_model_from_artifact_path(self, mock_joblib_load, mock_path_cls):
         """Test that engine loads model from configured artifact path."""
         from ml.inference.engine import InferenceEngine
 
@@ -67,9 +65,7 @@ class TestInferenceEngineLoad:
 
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    def test_engine_falls_back_to_dummy_if_model_missing(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    def test_engine_falls_back_to_dummy_if_model_missing(self, mock_joblib_load, mock_path_cls):
         """Test that engine uses dummy scorer if model file not found."""
         from ml.inference.engine import InferenceEngine
 
@@ -89,9 +85,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_infer_returns_score_between_0_and_1(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_infer_returns_score_between_0_and_1(self, mock_joblib_load, mock_path_cls):
         """Test that inference returns score in [0.0, 1.0]."""
         from ml.inference.engine import InferenceEngine
 
@@ -123,9 +117,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_infer_returns_version_in_output(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_infer_returns_version_in_output(self, mock_joblib_load, mock_path_cls):
         """Test that inference includes model version in output."""
         from ml.inference.engine import InferenceEngine
 
@@ -152,9 +144,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_batch_infer_processes_multiple_features(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_batch_infer_processes_multiple_features(self, mock_joblib_load, mock_path_cls):
         """Test that engine can process batch inference requests."""
         from ml.inference.engine import InferenceEngine
 
@@ -192,9 +182,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_hot_reload_updates_model_version(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_hot_reload_updates_model_version(self, mock_joblib_load, mock_path_cls):
         """Test that hot_reload updates the model version."""
         from ml.inference.engine import InferenceEngine
 
@@ -205,10 +193,14 @@ class TestInferenceEngineLoad:
         mock_version_file.exists.return_value = True
         mock_version_file.read_text = MagicMock(side_effect=["v1.0", "v2.0"])
 
-        mock_artifact_dir.__truediv__ = MagicMock(side_effect=[
-            mock_model_file, mock_version_file,  # Initial load
-            mock_model_file, mock_version_file,  # Hot reload
-        ])
+        mock_artifact_dir.__truediv__ = MagicMock(
+            side_effect=[
+                mock_model_file,
+                mock_version_file,  # Initial load
+                mock_model_file,
+                mock_version_file,  # Hot reload
+            ]
+        )
         mock_path_cls.return_value = mock_artifact_dir
 
         mock_model = MagicMock()
@@ -224,9 +216,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_concurrent_predict_uses_lock(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_concurrent_predict_uses_lock(self, mock_joblib_load, mock_path_cls):
         """Test that concurrent predictions use async lock correctly."""
         from ml.inference.engine import InferenceEngine
 
@@ -248,9 +238,7 @@ class TestInferenceEngineLoad:
 
         # Concurrent predictions
         features_list = [np.array([0.1, 0.2, 0.3]) for _ in range(5)]
-        results = await asyncio.gather(
-            *[engine.predict(f) for f in features_list]
-        )
+        results = await asyncio.gather(*[engine.predict(f) for f in features_list])
 
         assert len(results) == 5
         assert all(isinstance(r, tuple) and len(r) == 2 for r in results)
@@ -258,9 +246,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_predict_with_no_model_returns_dummy_score(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_predict_with_no_model_returns_dummy_score(self, mock_joblib_load, mock_path_cls):
         """Test that predict returns dummy score when model is None."""
         from ml.inference.engine import InferenceEngine
 
@@ -284,9 +270,7 @@ class TestInferenceEngineLoad:
     @pytest.mark.asyncio
     @patch("ml.inference.engine.Path")
     @patch("ml.inference.engine.joblib.load")
-    async def test_singleton_pattern(
-        self, mock_joblib_load, mock_path_cls
-    ):
+    async def test_singleton_pattern(self, mock_joblib_load, mock_path_cls):
         """Test that InferenceEngine uses singleton pattern."""
         from ml.inference.engine import InferenceEngine
 

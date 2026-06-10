@@ -302,9 +302,9 @@ class TestAutoencoder:
 
         # Verify weights match
         for key in state_dict_before:
-            assert torch.allclose(
-                ae2.model.state_dict()[key], state_dict_before[key]
-            ), f"Weights for {key} don't match after load"
+            assert torch.allclose(ae2.model.state_dict()[key], state_dict_before[key]), (
+                f"Weights for {key} don't match after load"
+            )
 
     def test_model_determinism_with_seed(self) -> None:
         """Same seed should produce same weights."""

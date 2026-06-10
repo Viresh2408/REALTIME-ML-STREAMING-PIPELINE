@@ -14,10 +14,10 @@ from datetime import UTC, datetime
 import pytest
 
 # ── connection settings pulled from .env / environment ──────────────────────
-DB_HOST     = os.getenv("TIMESCALE_HOST", "localhost")
-DB_PORT     = int(os.getenv("TIMESCALE_PORT", "5432"))
-DB_NAME     = os.getenv("TIMESCALE_DB", "anomaly_db")
-DB_USER     = os.getenv("TIMESCALE_USER", "anomaly_admin")
+DB_HOST = os.getenv("TIMESCALE_HOST", "localhost")
+DB_PORT = int(os.getenv("TIMESCALE_PORT", "5432"))
+DB_NAME = os.getenv("TIMESCALE_DB", "anomaly_db")
+DB_USER = os.getenv("TIMESCALE_USER", "anomaly_admin")
 DB_PASSWORD = os.getenv("TIMESCALE_PASSWORD", "StrongPass123!")
 
 DSN = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -87,12 +87,9 @@ class TestTimescaleDBSchema:
     @pytest.mark.asyncio
     async def test_timescaledb_extension_is_loaded(self, conn) -> None:
         """Confirm TimescaleDB extension is active in the database."""
-        row = await conn.fetchrow(
-            "SELECT extname FROM pg_extension WHERE extname = 'timescaledb'"
-        )
+        row = await conn.fetchrow("SELECT extname FROM pg_extension WHERE extname = 'timescaledb'")
         assert row is not None, (
-            "TimescaleDB extension not found — "
-            "make sure the timescaledb container is running"
+            "TimescaleDB extension not found — make sure the timescaledb container is running"
         )
 
     @pytest.mark.asyncio
@@ -100,7 +97,7 @@ class TestTimescaleDBSchema:
         """Create hypertable, insert a row, verify retrieval."""
         await create_test_table(conn)
 
-        event_id   = uuid.uuid4()
+        event_id = uuid.uuid4()
         event_time = datetime.now(tz=UTC)
 
         await conn.execute(
@@ -125,9 +122,9 @@ class TestTimescaleDBSchema:
         )
 
         assert row is not None
-        assert row["source_id"]   == "test-sensor"
+        assert row["source_id"] == "test-sensor"
         assert abs(row["anomaly_score"] - 0.85) < 1e-6
-        assert row["is_anomaly"]  is True
+        assert row["is_anomaly"] is True
         assert row["model_version"] == "v1"
 
     @pytest.mark.asyncio
@@ -248,8 +245,7 @@ class TestTimescaleDBSchema:
         )
 
         count = await conn.fetchval(
-            "SELECT COUNT(*) FROM test_integration.anomaly_events "
-            "WHERE source_id = $1",
+            "SELECT COUNT(*) FROM test_integration.anomaly_events WHERE source_id = $1",
             batch_source,
         )
         assert count == 100
@@ -289,8 +285,8 @@ class TestTimescaleDBSchema:
         """JSONB feature vector is stored and retrievable as valid JSON."""
         await create_test_table(conn)
 
-        event_id      = uuid.uuid4()
-        feature_data  = {"packet_length": 1024.5, "flow_duration": 300.0, "flag_count": 5}
+        event_id = uuid.uuid4()
+        feature_data = {"packet_length": 1024.5, "flow_duration": 300.0, "flag_count": 5}
 
         await conn.execute(
             """
@@ -304,11 +300,10 @@ class TestTimescaleDBSchema:
         )
 
         raw = await conn.fetchval(
-            "SELECT feature_vector FROM test_integration.anomaly_events "
-            "WHERE event_id = $1",
+            "SELECT feature_vector FROM test_integration.anomaly_events WHERE event_id = $1",
             event_id,
         )
 
         retrieved = json.loads(raw) if isinstance(raw, str) else raw
         assert retrieved["packet_length"] == 1024.5
-        assert retrieved["flag_count"]    == 5
+        assert retrieved["flag_count"] == 5

@@ -18,7 +18,7 @@ import time
 import httpx
 
 BASE_URL = "http://localhost:8000"
-STEP_OK   = "[OK]"
+STEP_OK = "[OK]"
 STEP_FAIL = "[FAIL]"
 STEP_INFO = "[INFO]"
 

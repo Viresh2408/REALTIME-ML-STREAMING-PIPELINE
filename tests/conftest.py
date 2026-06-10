@@ -58,6 +58,7 @@ os.environ.setdefault("ANOMALY_SCORE_THRESHOLD", "0.7")
 
 # ── Async event loop (session-scoped) ────────────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
     """Tell anyio to use asyncio as the async backend."""
@@ -85,6 +86,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 # ── Testcontainers: Kafka ────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def kafka_container() -> Generator:
     """
@@ -102,6 +104,7 @@ def kafka_container() -> Generator:
     # ── Docker availability guard ────────────────────────────────────────────
     try:
         import docker as _docker  # type: ignore[import-untyped]
+
         _docker.from_env().ping()
     except Exception as _exc:
         pytest.skip(f"Docker not available — skipping kafka_container fixture: {_exc}")
@@ -115,18 +118,22 @@ def kafka_container() -> Generator:
         os.environ["KAFKA_BOOTSTRAP_SERVERS"] = bootstrap
         if "app.core.config" in sys.modules:
             from app.core.config import settings
+
             settings.KAFKA_BOOTSTRAP_SERVERS = bootstrap
 
         # Pre-create all required topics so background workers don't crash
         from infra.kafka.create_topics import create_topics
+
         create_topics()
 
         # Reset cached Kafka producers
         if "app.core.kafka" in sys.modules:
             from app.core.kafka import kafka_producer_manager
+
             kafka_producer_manager._producer = None
         if "app.services.event_service" in sys.modules:
             from app.services.event_service import KafkaProducerSingleton
+
             KafkaProducerSingleton._producer = None
 
         yield container
@@ -135,6 +142,7 @@ def kafka_container() -> Generator:
 
 
 # ── Testcontainers: TimescaleDB ──────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def timescaledb_container() -> Generator:
@@ -149,6 +157,7 @@ def timescaledb_container() -> Generator:
     # ── Docker availability guard ────────────────────────────────────────────
     try:
         import docker as _docker  # type: ignore[import-untyped]
+
         _docker.from_env().ping()
     except Exception as _exc:
         pytest.skip(f"Docker not available — skipping timescaledb_container fixture: {_exc}")
@@ -169,20 +178,24 @@ def timescaledb_container() -> Generator:
         os.environ["DATABASE_URL"] = url
         if "app.core.config" in sys.modules:
             from app.core.config import settings
+
             settings.DATABASE_URL = url
 
         # Reset cached db_manager engine to force re-initialization with correct container URL
         from backend.database.connection import db_manager
+
         db_manager._engine = None
         db_manager._session_factory = None
 
         # Reset raw connection pool
         import backend.database.connection as db_conn
+
         db_conn._raw_pool = None
 
         if "app.core.database" in sys.modules:
             import app.core.database
             from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+
             new_engine = create_async_engine(
                 url,
                 echo=False,
@@ -198,6 +211,7 @@ def timescaledb_container() -> Generator:
 
 
 # ── Testcontainers: Redis ────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def redis_container() -> Generator:
@@ -218,11 +232,13 @@ def redis_container() -> Generator:
         os.environ["REDIS_URL"] = url
         if "app.core.config" in sys.modules:
             from app.core.config import settings
+
             settings.REDIS_URL = url
 
         # Reset cached redis pool
         if "app.core.redis_client" in sys.modules:
             from app.core.redis_client import redis_pool
+
             redis_pool._client = None
             redis_pool._pool = None
 
@@ -230,6 +246,7 @@ def redis_container() -> Generator:
 
 
 # ── FastAPI TestClient ───────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def client(

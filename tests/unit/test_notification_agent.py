@@ -42,9 +42,7 @@ class TestNotificationAgent:
 
     @patch("agents.notification_agent.Consumer")
     @patch("agents.notification_agent.SlackNotifier")
-    async def test_medium_alert_calls_slack_only(
-        self, mock_slack_cls, mock_consumer_cls
-    ):
+    async def test_medium_alert_calls_slack_only(self, mock_slack_cls, mock_consumer_cls):
         """Test that MEDIUM severity alerts only go to Slack."""
         from agents.notification_agent import NotificationAgent
 
@@ -207,9 +205,7 @@ class TestNotificationAgent:
 
     @patch("agents.notification_agent.Consumer")
     @patch("agents.notification_agent.SlackNotifier")
-    async def test_slack_notifier_initialization(
-        self, mock_slack_cls, mock_consumer_cls
-    ):
+    async def test_slack_notifier_initialization(self, mock_slack_cls, mock_consumer_cls):
         """Test that Slack notifier is initialized with webhook URL."""
         from agents.notification_agent import NotificationAgent
 
@@ -227,9 +223,7 @@ class TestNotificationAgent:
 
     @patch("agents.notification_agent.Consumer")
     @patch("agents.notification_agent.EmailNotifier")
-    async def test_email_notifier_initialization(
-        self, mock_email_cls, mock_consumer_cls
-    ):
+    async def test_email_notifier_initialization(self, mock_email_cls, mock_consumer_cls):
         """Test that Email notifier is initialized with API key and recipients."""
         from agents.notification_agent import NotificationAgent
 
@@ -247,9 +241,7 @@ class TestNotificationAgent:
 
     @patch("agents.notification_agent.Consumer")
     @patch("agents.notification_agent.PagerDutyNotifier")
-    async def test_pagerduty_notifier_initialization(
-        self, mock_pd_cls, mock_consumer_cls
-    ):
+    async def test_pagerduty_notifier_initialization(self, mock_pd_cls, mock_consumer_cls):
         """Test that PagerDuty notifier is initialized with routing key."""
         from agents.notification_agent import NotificationAgent
 
@@ -266,9 +258,7 @@ class TestNotificationAgent:
             assert agent.pd_notifier is not None
 
     @patch("agents.notification_agent.Consumer")
-    async def test_consumer_subscribed_to_alerts_topic(
-        self, mock_consumer_cls
-    ):
+    async def test_consumer_subscribed_to_alerts_topic(self, mock_consumer_cls):
         """Test that consumer subscribes to alerts topic."""
         from agents.notification_agent import NotificationAgent
 
@@ -280,9 +270,7 @@ class TestNotificationAgent:
         assert agent.topic == "alerts"
 
     @patch("agents.notification_agent.Consumer")
-    async def test_severity_classifier_initialized(
-        self, mock_consumer_cls
-    ):
+    async def test_severity_classifier_initialized(self, mock_consumer_cls):
         """Test that severity classifier is available."""
         from agents.notification_agent import NotificationAgent
 

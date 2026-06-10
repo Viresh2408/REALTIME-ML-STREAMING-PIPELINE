@@ -47,12 +47,14 @@ class TestInferenceWorker:
 
     def test_worker_message_structure(self):
         """Test that worker would parse JSON messages from Kafka."""
-        message_value = json.dumps({
-            "event_id": "evt-1",
-            "source_id": "sensor-1",
-            "features": [0.1, 0.2, 0.3],
-            "event_time": 1000,
-        })
+        message_value = json.dumps(
+            {
+                "event_id": "evt-1",
+                "source_id": "sensor-1",
+                "features": [0.1, 0.2, 0.3],
+                "event_time": 1000,
+            }
+        )
 
         parsed = json.loads(message_value)
         assert parsed["event_id"] == "evt-1"
@@ -76,7 +78,7 @@ class TestInferenceWorker:
         mock_message.offset = MagicMock(return_value=12345)
 
         # Offset should be available
-        assert hasattr(mock_message, 'offset')
+        assert hasattr(mock_message, "offset")
 
     def test_worker_error_handling_no_commit(self):
         """Test that worker doesn't commit offset on processing error."""
@@ -107,6 +109,7 @@ class TestInferenceWorker:
     @pytest.mark.asyncio
     async def test_four_concurrent_tasks_process_independently(self):
         """Test that worker can process multiple concurrent messages."""
+
         async def process_message(msg_id):
             await asyncio.sleep(0.01)
             return f"processed-{msg_id}"
@@ -120,6 +123,7 @@ class TestInferenceWorker:
     def test_worker_measures_inference_latency(self):
         """Test that worker would measure inference latency."""
         import time
+
         start = time.time()
         # Simulate inference with actual sleep
         time.sleep(0.01)
@@ -146,8 +150,12 @@ class TestInferenceWorker:
 
         # Verify all required fields
         required_fields = {
-            "event_id", "source_id", "anomaly_score",
-            "is_anomaly", "model_version", "processed_at"
+            "event_id",
+            "source_id",
+            "anomaly_score",
+            "is_anomaly",
+            "model_version",
+            "processed_at",
         }
         assert required_fields.issubset(set(scored_event.keys()))
 
@@ -155,4 +163,3 @@ class TestInferenceWorker:
         """Test that worker would route errors to dead-letter queue."""
         dead_letter_topic = "raw-events-dead-letter"
         assert "dead-letter" in dead_letter_topic
-

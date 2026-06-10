@@ -32,6 +32,7 @@ sys.modules["ml_inference_module"] = ml_inference_module
 spec.loader.exec_module(ml_inference_module)
 InferenceEngine = ml_inference_module.InferenceEngine
 
+
 # Prometheus Metrics — guarded against duplicate registration on module re-import
 def _get_or_create_metric(metric_cls, name, description, **kwargs):
     """Return existing metric from registry or create a new one."""
@@ -39,12 +40,20 @@ def _get_or_create_metric(metric_cls, name, description, **kwargs):
         return metric_cls(name, description, **kwargs)
     except ValueError:
         # Already registered (e.g. when module is re-imported during tests)
-        return REGISTRY._names_to_collectors.get(name) or REGISTRY._names_to_collectors.get(name + "_total")
+        return REGISTRY._names_to_collectors.get(name) or REGISTRY._names_to_collectors.get(
+            name + "_total"
+        )
 
 
-INFERENCE_LATENCY = _get_or_create_metric(Histogram, "inference_latency_seconds", "Latency of ML inference")
-EVENTS_PROCESSED = _get_or_create_metric(Counter, "events_processed_total", "Total events processed")
-ANOMALIES_DETECTED = _get_or_create_metric(Counter, "anomalies_detected_total", "Total anomalies detected")
+INFERENCE_LATENCY = _get_or_create_metric(
+    Histogram, "inference_latency_seconds", "Latency of ML inference"
+)
+EVENTS_PROCESSED = _get_or_create_metric(
+    Counter, "events_processed_total", "Total events processed"
+)
+ANOMALIES_DETECTED = _get_or_create_metric(
+    Counter, "anomalies_detected_total", "Total anomalies detected"
+)
 
 
 class MLInferenceAgent:

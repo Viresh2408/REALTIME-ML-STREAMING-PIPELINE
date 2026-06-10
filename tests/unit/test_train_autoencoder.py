@@ -47,6 +47,7 @@ class TestTrainAutoencoder:
         """Verify train_autoencoder module imports correctly."""
         try:
             from ml.training.train_autoencoder import train_autoencoder
+
             assert callable(train_autoencoder)
         except ImportError as e:
             pytest.skip(f"AutoencoderTrainer not found in autoencoder.py: {e}")
@@ -68,6 +69,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training function should execute without errors."""
+
         # Setup mock MLflow context
         class _FakeRun:
             class info:
@@ -116,6 +118,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should log metrics to MLflow."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -163,6 +166,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should save model checkpoint locally."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -209,6 +213,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should normalize features before training."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -221,10 +226,12 @@ class TestTrainAutoencoder:
 
             # Create non-normalized data (different scales)
             rng = np.random.default_rng(42)
-            data = np.hstack([
-                rng.standard_normal((200, 5)) * 100,  # large scale
-                rng.standard_normal((200, 5)) * 0.01,  # small scale
-            ])
+            data = np.hstack(
+                [
+                    rng.standard_normal((200, 5)) * 100,  # large scale
+                    rng.standard_normal((200, 5)) * 0.01,  # small scale
+                ]
+            )
 
             train_autoencoder(
                 data=data,
@@ -262,6 +269,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should compute reconstruction errors on training set."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -306,6 +314,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should return computed metrics."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -351,6 +360,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should accept custom architecture parameters."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -395,6 +405,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should register model with MLflow."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -436,6 +447,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should apply dropout to prevent overfitting."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -478,6 +490,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should create artifact path directory if missing."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"
@@ -521,6 +534,7 @@ class TestTrainAutoencoder:
         tmp_path,
     ) -> None:
         """Training should use MLflow run context manager."""
+
         class _FakeRun:
             class info:
                 run_id = "test-run"

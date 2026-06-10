@@ -54,18 +54,22 @@ for key, value in _CI_ENV.items():
 
 # ── App import ───────────────────────────────────────────────────────────────
 
+
 def _import_app():
     from app.main import app  # type: ignore[import]
+
     return app
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def fake_redis():
     """In-memory fakeredis async client."""
     try:
         import fakeredis.aioredis as fake_aio
+
         return fake_aio.FakeRedis(decode_responses=True)
     except ImportError:
         r = AsyncMock()
@@ -102,6 +106,7 @@ def ws_client(fake_redis):
 # ────────────────────────────────────────────────────────────────────────────
 # ConnectionManager Tests
 # ────────────────────────────────────────────────────────────────────────────
+
 
 class TestConnectionManager:
     """Test ConnectionManager class directly."""
@@ -222,9 +227,7 @@ class TestConnectionManager:
 
         async def run():
             # Connect all clients concurrently
-            await asyncio.gather(*[
-                manager.connect(ws, "events") for ws in clients
-            ])
+            await asyncio.gather(*[manager.connect(ws, "events") for ws in clients])
 
             # Broadcast message
             message = {"type": "test", "id": "concurrent-test"}
@@ -241,6 +244,7 @@ class TestConnectionManager:
 # ────────────────────────────────────────────────────────────────────────────
 # /ws/events Endpoint Tests
 # ────────────────────────────────────────────────────────────────────────────
+
 
 class TestWebSocketEvents:
     """Test /ws/events WebSocket endpoint."""
@@ -268,6 +272,7 @@ class TestWebSocketEvents:
                 await manager.broadcast(message, "events")
 
             import asyncio
+
             asyncio.run(broadcast_event())
 
             # Receive broadcast message
@@ -297,6 +302,7 @@ class TestWebSocketEvents:
                 await manager.broadcast(message, "events")
 
             import asyncio
+
             asyncio.run(broadcast_with_all_fields())
 
             data = ws.receive_text()
@@ -331,6 +337,7 @@ class TestWebSocketEvents:
 # /ws/alerts Endpoint Tests
 # ────────────────────────────────────────────────────────────────────────────
 
+
 class TestWebSocketAlerts:
     """Test /ws/alerts WebSocket endpoint."""
 
@@ -355,6 +362,7 @@ class TestWebSocketAlerts:
                 await manager.broadcast(alert_message, "alerts")
 
             import asyncio
+
             asyncio.run(broadcast_alert())
 
             data = ws.receive_text()
@@ -382,6 +390,7 @@ class TestWebSocketAlerts:
                     await asyncio.sleep(0.01)
 
             import asyncio
+
             asyncio.run(broadcast_severity_alert())
 
             # Receive all 4 messages
@@ -414,6 +423,7 @@ class TestWebSocketAlerts:
 # /ws/metrics Endpoint Tests
 # ────────────────────────────────────────────────────────────────────────────
 
+
 class TestWebSocketMetrics:
     """Test /ws/metrics WebSocket endpoint."""
 
@@ -443,6 +453,7 @@ class TestWebSocketMetrics:
                     await asyncio.sleep(0.1)
 
             import asyncio
+
             asyncio.run(broadcast_metrics())
 
             # Should receive metrics updates
@@ -470,6 +481,7 @@ class TestWebSocketMetrics:
                 await manager.broadcast(message, "metrics")
 
             import asyncio
+
             asyncio.run(broadcast_with_eps())
 
             data = ws.receive_text()
@@ -497,6 +509,7 @@ class TestWebSocketMetrics:
                 await manager.broadcast(message, "metrics")
 
             import asyncio
+
             asyncio.run(broadcast_with_rate())
 
             data = ws.receive_text()
@@ -540,6 +553,7 @@ class TestWebSocketMetrics:
 
         with ws_client.websocket_connect("/ws/metrics") as ws:
             import asyncio
+
             # Give task time to start
             asyncio.run(asyncio.sleep(0.2))
             # Metrics task should now be running
@@ -557,6 +571,7 @@ class TestWebSocketMetrics:
 
         with ws_client.websocket_connect("/ws/metrics") as ws:
             import asyncio
+
             asyncio.run(asyncio.sleep(0.1))
             assert manager._metrics_task is not None
 
@@ -568,6 +583,7 @@ class TestWebSocketMetrics:
 # Cross-channel isolation tests
 # ────────────────────────────────────────────────────────────────────────────
 
+
 class TestWebSocketChannelIsolation:
     """Test that messages are isolated by channel."""
 
@@ -576,12 +592,14 @@ class TestWebSocketChannelIsolation:
         from app.api.v1.websocket import manager
 
         with ws_client.websocket_connect("/ws/events") as ws_events:
+
             async def send_alert_to_different_channel():
                 # Send to alerts channel
                 message = {"alert_id": str(uuid.uuid4()), "severity": "HIGH"}
                 await manager.broadcast(message, "alerts")
 
             import asyncio
+
             asyncio.run(send_alert_to_different_channel())
 
             # Events subscriber should not receive anything
@@ -594,17 +612,13 @@ class TestWebSocketChannelIsolation:
 
         with ws_client.websocket_connect("/ws/events") as ws_events:
             with ws_client.websocket_connect("/ws/alerts") as ws_alerts:
+
                 async def broadcast_to_both():
-                    await manager.broadcast(
-                        {"type": "event", "id": "1"},
-                        "events"
-                    )
-                    await manager.broadcast(
-                        {"type": "alert", "id": "2"},
-                        "alerts"
-                    )
+                    await manager.broadcast({"type": "event", "id": "1"}, "events")
+                    await manager.broadcast({"type": "alert", "id": "2"}, "alerts")
 
                 import asyncio
+
                 asyncio.run(broadcast_to_both())
 
                 # Events channel gets event
@@ -636,12 +650,10 @@ class TestWebSocketConcurrency:
 
             # Broadcast to all
             async def broadcast_once():
-                await manager.broadcast(
-                    {"test": "concurrent", "id": str(uuid.uuid4())},
-                    "events"
-                )
+                await manager.broadcast({"test": "concurrent", "id": str(uuid.uuid4())}, "events")
 
             import asyncio
+
             asyncio.run(broadcast_once())
 
             # All should receive
@@ -687,6 +699,7 @@ class TestWebSocketConcurrency:
                         )
 
                     import asyncio
+
                     asyncio.run(concurrent_broadcasts())
 
                     # Each should receive on its channel

@@ -46,42 +46,37 @@ class TestSeverityClassifierThresholds:
         "score, burst_count, expected_severity",
         [
             # ── NONE: score strictly below 0.70 ─────────────────────────────
-            (0.0,   0, Severity.NONE),
+            (0.0, 0, Severity.NONE),
             (0.500, 0, Severity.NONE),
             (0.694, 0, Severity.NONE),
-            (0.695, 0, Severity.NONE),   # spec edge case — below LOW threshold
+            (0.695, 0, Severity.NONE),  # spec edge case — below LOW threshold
             (0.699, 0, Severity.NONE),
-
             # ── LOW boundary: [0.70, 0.80) ────────────────────────────────────
-            (0.700, 0, Severity.LOW),    # exact lower boundary → LOW
-            (0.70,  0, Severity.LOW),    # spec edge case: score=0.70 → LOW
+            (0.700, 0, Severity.LOW),  # exact lower boundary → LOW
+            (0.70, 0, Severity.LOW),  # spec edge case: score=0.70 → LOW
             (0.750, 0, Severity.LOW),
-            (0.799, 0, Severity.LOW),    # just below MEDIUM
-
+            (0.799, 0, Severity.LOW),  # just below MEDIUM
             # ── MEDIUM boundary: [0.80, 0.90) ────────────────────────────────
-            (0.800, 0, Severity.MEDIUM), # exact MEDIUM lower boundary
+            (0.800, 0, Severity.MEDIUM),  # exact MEDIUM lower boundary
             (0.850, 0, Severity.MEDIUM),
-            (0.899, 0, Severity.MEDIUM), # just below HIGH
-
+            (0.899, 0, Severity.MEDIUM),  # just below HIGH
             # ── HIGH boundary: [0.90, 0.95) ──────────────────────────────────
-            (0.900, 0, Severity.HIGH),   # exact HIGH lower boundary
+            (0.900, 0, Severity.HIGH),  # exact HIGH lower boundary
             (0.920, 0, Severity.HIGH),
             (0.940, 0, Severity.HIGH),
-            (0.949, 0, Severity.HIGH),   # just below CRITICAL
-
+            (0.949, 0, Severity.HIGH),  # just below CRITICAL
             # ── CRITICAL boundary: score ≥ 0.95 ──────────────────────────────
             (0.950, 0, Severity.CRITICAL),  # spec edge case: score=0.95 → CRITICAL
-            (0.95,  0, Severity.CRITICAL),  # exact lower boundary
+            (0.95, 0, Severity.CRITICAL),  # exact lower boundary
             (0.975, 0, Severity.CRITICAL),
             (0.990, 0, Severity.CRITICAL),
             (1.000, 0, Severity.CRITICAL),  # maximum score
-
             # ── Burst-based override (burst_count ≥ 10 → CRITICAL) ────────────
             (0.500, 10, Severity.CRITICAL),  # low score, but burst triggers CRITICAL
             (0.695, 10, Severity.CRITICAL),  # would be NONE by score alone
             (0.750, 12, Severity.CRITICAL),  # LOW by score, CRITICAL by burst
             (0.850, 15, Severity.CRITICAL),  # MEDIUM by score, CRITICAL by burst
-            (0.900,  9, Severity.HIGH),      # HIGH by score, burst=9 < 10 → stays HIGH
+            (0.900, 9, Severity.HIGH),  # HIGH by score, burst=9 < 10 → stays HIGH
             (0.900, 10, Severity.CRITICAL),  # HIGH by score, burst=10 → CRITICAL
         ],
         ids=lambda v: str(v),
@@ -99,8 +94,7 @@ class TestSeverityClassifierThresholds:
         """
         result = self.classifier.classify(score, burst_count)
         assert result == expected_severity, (
-            f"classify(score={score}, burst={burst_count}) = {result}, "
-            f"expected {expected_severity}"
+            f"classify(score={score}, burst={burst_count}) = {result}, expected {expected_severity}"
         )
 
 
@@ -124,10 +118,10 @@ class TestSeverityClassifierSLAMapping:
     @pytest.mark.parametrize(
         "severity, expected_sla_s",
         [
-            (Severity.NONE,     0),
-            (Severity.LOW,      5),
-            (Severity.MEDIUM,  10),
-            (Severity.HIGH,    30),
+            (Severity.NONE, 0),
+            (Severity.LOW, 5),
+            (Severity.MEDIUM, 10),
+            (Severity.HIGH, 30),
             (Severity.CRITICAL, 60),
         ],
     )
@@ -162,11 +156,11 @@ class TestSeverityClassifierRoutingActions:
     @pytest.mark.parametrize(
         "severity, actionable, slack, email, pagerduty",
         [
-            (Severity.NONE,     False, False, False, False),
-            (Severity.LOW,      True,  False, False, False),
-            (Severity.MEDIUM,   True,  True,  False, False),
-            (Severity.HIGH,     True,  True,  True,  False),
-            (Severity.CRITICAL, True,  True,  True,  True),
+            (Severity.NONE, False, False, False, False),
+            (Severity.LOW, True, False, False, False),
+            (Severity.MEDIUM, True, True, False, False),
+            (Severity.HIGH, True, True, True, False),
+            (Severity.CRITICAL, True, True, True, True),
         ],
     )
     def test_routing_actions(
@@ -232,14 +226,10 @@ class TestSeverityClassifierEdgeCases:
     def test_sub_threshold_scores_are_none(self, score: float) -> None:
         """Any score below 0.70 must classify as NONE (not actionable)."""
         result = self.classifier.classify(score, 0)
-        assert result == Severity.NONE, (
-            f"classify({score}, 0) should be NONE, got {result}"
-        )
+        assert result == Severity.NONE, f"classify({score}, 0) should be NONE, got {result}"
 
     @pytest.mark.parametrize("score", [0.700001, 0.710, 0.790, 0.799999])
     def test_low_band_scores(self, score: float) -> None:
         """Scores in (0.70, 0.80) exclusive must classify as LOW."""
         result = self.classifier.classify(score, 0)
-        assert result == Severity.LOW, (
-            f"classify({score}, 0) should be LOW, got {result}"
-        )
+        assert result == Severity.LOW, f"classify({score}, 0) should be LOW, got {result}"

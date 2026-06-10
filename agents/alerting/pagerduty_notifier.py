@@ -102,7 +102,7 @@ class PagerDutyNotifier:
 
         return {
             "routing_key": self._resolved_key(),
-            "dedup_key": alert.alert_id,        # idempotent across retries
+            "dedup_key": alert.alert_id,  # idempotent across retries
             "event_action": "trigger",
             "payload": {
                 "summary": (

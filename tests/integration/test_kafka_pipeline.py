@@ -26,6 +26,7 @@ from confluent_kafka import Consumer, Producer
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_producer(bootstrap: str, **extra: object) -> Producer:
     """Create a confluent-kafka Producer with safe defaults."""
     cfg: dict[str, object] = {
@@ -77,6 +78,7 @@ def _drain_topic(
 
 
 # ── Test class ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.integration
 @pytest.mark.testcontainers
@@ -171,13 +173,9 @@ class TestKafkaPipeline:
         )
         results = _drain_topic(scored_consumer, scored_topic, expected_count=1, timeout_s=8.0)
 
-        assert len(results) >= 1, (
-            f"Scored event not found on '{scored_topic}' within 8s"
-        )
+        assert len(results) >= 1, f"Scored event not found on '{scored_topic}' within 8s"
         result = results[0]
-        assert result["event_id"] == event_id, (
-            f"Scored event_id mismatch: {result['event_id']}"
-        )
+        assert result["event_id"] == event_id, f"Scored event_id mismatch: {result['event_id']}"
         assert result["anomaly_score"] == pytest.approx(0.82, abs=1e-6)
         assert result["is_anomaly"] is True
         assert result["severity"] == "MEDIUM"
@@ -284,7 +282,9 @@ class TestKafkaPipeline:
 
         # ── Step 1: produce a malformed raw event ─────────────────────────────
         producer = _make_producer(bootstrap)
-        malformed_payload = b"{{MALFORMED:::NON_JSON_CORRUPT_PAYLOAD:::" + event_id.encode() + b"}}}"
+        malformed_payload = (
+            b"{{MALFORMED:::NON_JSON_CORRUPT_PAYLOAD:::" + event_id.encode() + b"}}}"
+        )
         producer.produce(topic=raw_topic, key=event_id, value=malformed_payload)
         producer.flush(timeout=10)
 
@@ -335,13 +335,9 @@ class TestKafkaPipeline:
             bootstrap,
             group_id=f"test-verify-dlq-{uuid.uuid4().hex[:6]}",
         )
-        dlq_messages = _drain_topic(
-            dlq_consumer, dlq_topic, expected_count=1, timeout_s=8.0
-        )
+        dlq_messages = _drain_topic(dlq_consumer, dlq_topic, expected_count=1, timeout_s=8.0)
 
-        assert len(dlq_messages) >= 1, (
-            f"No DLQ message found on '{dlq_topic}' within 8s"
-        )
+        assert len(dlq_messages) >= 1, f"No DLQ message found on '{dlq_topic}' within 8s"
         dlq_msg = dlq_messages[0]
         assert dlq_msg["error_reason"] == "JSONDecodeError", (
             f"Expected JSONDecodeError, got: {dlq_msg.get('error_reason')}"
@@ -392,6 +388,4 @@ class TestKafkaPipeline:
         )
         received = _drain_topic(consumer, topic, expected_count=n, timeout_s=15.0)
 
-        assert len(received) == n, (
-            f"Throughput test: expected {n} events, received {len(received)}"
-        )
+        assert len(received) == n, f"Throughput test: expected {n} events, received {len(received)}"

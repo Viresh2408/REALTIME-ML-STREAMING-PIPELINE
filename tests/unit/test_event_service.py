@@ -50,12 +50,15 @@ for _k, _v in _REQUIRED_ENV.items():
 
 # ── Lazy imports (after env is set) ──────────────────────────────────────────
 
+
 def _import_service():
     from app.services.event_service import EventService, KafkaProducerSingleton
+
     return EventService, KafkaProducerSingleton
 
 
 # ── Shared mock row builders ──────────────────────────────────────────────────
+
 
 def _make_event_row(
     *,
@@ -115,6 +118,7 @@ def _build_async_session(scalar_result=None, scalars_all=None) -> AsyncMock:
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def reset_kafka_singleton():
     """Reset the Kafka singleton before/after each test."""
@@ -140,6 +144,7 @@ def mock_kafka_producer() -> MagicMock:
 def sample_event_payload():
     """A minimal IngestEventIn payload dict."""
     from app.schemas.events import IngestEventIn  # type: ignore[import]
+
     return IngestEventIn(
         source_id="sensor-42",
         feature_vector=[0.1, 0.2, 0.3, 0.4, 0.5],
@@ -150,6 +155,7 @@ def sample_event_payload():
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. test_ingest_produces_to_kafka
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_ingest_produces_to_kafka(mock_kafka_producer, sample_event_payload):
@@ -177,6 +183,7 @@ async def test_ingest_produces_to_kafka(mock_kafka_producer, sample_event_payloa
 
     # Topic must be the raw-events topic
     from app.core.config import settings  # type: ignore[import]
+
     topic_used = kwargs.get("topic") or (args[0] if args else None)
     assert topic_used == settings.KAFKA_RAW_EVENTS_TOPIC
 
@@ -217,6 +224,7 @@ async def test_ingest_calls_producer_poll(mock_kafka_producer, sample_event_payl
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. test_ingest_batch_produces_all_events
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_ingest_batch_produces_all_events(mock_kafka_producer):
@@ -294,6 +302,7 @@ async def test_ingest_batch_metadata_included_in_kafka_message(mock_kafka_produc
 # 3. test_get_events_pagination_works
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_events_pagination_works():
     """
@@ -313,6 +322,7 @@ async def test_get_events_pagination_works():
     assert len(results) == 2
     # Results must be AnomalyEventOut instances
     from app.schemas.events import AnomalyEventOut  # type: ignore[import]
+
     assert all(isinstance(r, AnomalyEventOut) for r in results)
 
 
@@ -366,6 +376,7 @@ async def test_list_events_source_id_filter():
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. test_label_event_updates_db
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_label_event_updates_db():

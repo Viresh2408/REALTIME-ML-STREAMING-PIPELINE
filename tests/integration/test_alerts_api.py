@@ -38,16 +38,20 @@ from tests.integration.conftest_mocks import (
 
 # ── App import (after env bootstrap done in conftest_mocks) ───────────────────
 
+
 def _app():
     from app.main import app  # type: ignore[import]
+
     return app
 
 
 # ── Reusable async-client context manager ────────────────────────────────────
 
+
 @asynccontextmanager
-async def alerts_client(db_session_mock: AsyncMock | None = None,
-                        fake_redis=None) -> AsyncGenerator[AsyncClient, None]:
+async def alerts_client(
+    db_session_mock: AsyncMock | None = None, fake_redis=None
+) -> AsyncGenerator[AsyncClient, None]:
     """
     Async test client with dependency overrides for DB and Redis.
     Caller supplies a pre-configured db_session_mock for full control.
@@ -91,6 +95,7 @@ async def alerts_client(db_session_mock: AsyncMock | None = None,
 # 1. test_list_alerts_returns_200
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_alerts_returns_200():
     """
@@ -114,6 +119,7 @@ async def test_list_alerts_returns_200():
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. test_list_alerts_filters_by_severity
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_alerts_filters_by_severity():
@@ -142,6 +148,7 @@ async def test_list_alerts_filters_by_severity():
 # 3. test_get_alert_by_id_returns_404_when_missing
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_alert_by_id_returns_404_when_missing():
     """
@@ -167,6 +174,7 @@ async def test_get_alert_by_id_returns_404_when_missing():
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. test_acknowledge_alert_updates_status
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_acknowledge_alert_updates_status():
@@ -197,6 +205,7 @@ async def test_acknowledge_alert_updates_status():
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. test_resolve_alert_requires_resolution_string
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_resolve_alert_requires_resolution_string():
@@ -233,7 +242,10 @@ async def test_resolve_alert_with_valid_payload_returns_200():
     async with alerts_client(db_session_mock=db) as client:
         response = await client.patch(
             f"/api/v1/alerts/{alert_id}/resolve",
-            json={"analyst_id": "analyst@example.com", "resolution": "False positive — whitelisted"},
+            json={
+                "analyst_id": "analyst@example.com",
+                "resolution": "False positive — whitelisted",
+            },
             headers=auth_headers("analyst"),
         )
 
@@ -246,6 +258,7 @@ async def test_resolve_alert_with_valid_payload_returns_200():
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. test_silence_alert_stores_in_redis  (DB + Redis path)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_silence_alert_stores_in_redis():
@@ -295,6 +308,7 @@ async def test_silence_alert_stores_in_redis():
 # ─────────────────────────────────────────────────────────────────────────────
 # 7. test_list_alerts_requires_auth
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_alerts_requires_auth():

@@ -41,9 +41,7 @@ class TestRetrainingAgent:
 
     @patch("agents.retraining_agent.Producer")
     @patch("agents.retraining_agent.asyncpg")
-    async def test_retrain_job_queries_last_30_days(
-        self, mock_asyncpg_module, mock_producer_cls
-    ):
+    async def test_retrain_job_queries_last_30_days(self, mock_asyncpg_module, mock_producer_cls):
         """Test that retraining job extracts data from last 30 days."""
         from agents.retraining_agent import RetrainingAgent
 
@@ -53,13 +51,16 @@ class TestRetrainingAgent:
 
         # Create pool mock that is not async itself
         mock_pool = MagicMock()
+
         # Setup the async context manager for pool.acquire()
         async def mock_acquire_cm():
             class ACM:
                 async def __aenter__(self):
                     return mock_connection
+
                 async def __aexit__(self, *args):
                     return None
+
             return ACM()
 
         mock_pool.acquire = mock_acquire_cm
@@ -67,6 +68,7 @@ class TestRetrainingAgent:
         # close() should be async
         async def mock_close():
             pass
+
         mock_pool.close = mock_close
 
         # Setup the module's create_pool
@@ -194,9 +196,7 @@ class TestRetrainingAgent:
 
     @patch("agents.retraining_agent.Producer")
     @patch("agents.retraining_agent.asyncpg.create_pool")
-    async def test_scheduled_job_runs_at_3am_utc(
-        self, mock_pool_factory, mock_producer_cls
-    ):
+    async def test_scheduled_job_runs_at_3am_utc(self, mock_pool_factory, mock_producer_cls):
         """Test that retraining job is scheduled for 03:00 UTC."""
         from agents.retraining_agent import RetrainingAgent
 
@@ -214,9 +214,7 @@ class TestRetrainingAgent:
 
     @patch("agents.retraining_agent.Producer")
     @patch("agents.retraining_agent.asyncpg.create_pool")
-    async def test_model_version_timestamp_format(
-        self, mock_pool_factory, mock_producer_cls
-    ):
+    async def test_model_version_timestamp_format(self, mock_pool_factory, mock_producer_cls):
         """Test that model version uses YYYYMMDD_HHMMSS format."""
         from agents.retraining_agent import RetrainingAgent
 
@@ -240,6 +238,7 @@ class TestRetrainingAgent:
 
         # Verify format (YYYYMMDD_HHMMSS)
         import re
+
         pattern = r"^\d{8}_\d{6}$"
         assert re.match(pattern, version)
 
@@ -272,9 +271,7 @@ class TestRetrainingAgent:
 
     @patch("agents.retraining_agent.Producer")
     @patch("agents.retraining_agent.asyncpg.create_pool")
-    async def test_db_connection_url_parsing(
-        self, mock_pool_factory, mock_producer_cls
-    ):
+    async def test_db_connection_url_parsing(self, mock_pool_factory, mock_producer_cls):
         """Test that database URL is correctly parsed."""
         from agents.retraining_agent import RetrainingAgent
 
@@ -292,9 +289,7 @@ class TestRetrainingAgent:
 
     @patch("agents.retraining_agent.Producer")
     @patch("agents.retraining_agent.asyncpg.create_pool")
-    async def test_metrics_validation_logic(
-        self, mock_pool_factory, mock_producer_cls
-    ):
+    async def test_metrics_validation_logic(self, mock_pool_factory, mock_producer_cls):
         """Test that metrics validation prevents bad model deployment."""
         from agents.retraining_agent import RetrainingAgent
 
@@ -313,8 +308,8 @@ class TestRetrainingAgent:
 
         # Test various metric scenarios
         scenarios = [
-            {"old_acc": 0.95, "new_acc": 0.96, "should_deploy": True},   # Improvement
-            {"old_acc": 0.95, "new_acc": 0.95, "should_deploy": True},   # No change
+            {"old_acc": 0.95, "new_acc": 0.96, "should_deploy": True},  # Improvement
+            {"old_acc": 0.95, "new_acc": 0.95, "should_deploy": True},  # No change
             {"old_acc": 0.95, "new_acc": 0.94, "should_deploy": False},  # Regression
         ]
 

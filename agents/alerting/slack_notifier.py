@@ -33,10 +33,10 @@ from agents.alerting.models import AlertEvent
 logger = logging.getLogger(__name__)
 
 _SEVERITY_COLORS: dict[str, str] = {
-    "NONE": "#36a64f",      # green
-    "LOW": "#f0e130",       # yellow
-    "MEDIUM": "#ffa500",    # orange
-    "HIGH": "#e01e5a",      # red
+    "NONE": "#36a64f",  # green
+    "LOW": "#f0e130",  # yellow
+    "MEDIUM": "#ffa500",  # orange
+    "HIGH": "#e01e5a",  # red
     "CRITICAL": "#7b0000",  # dark red
 }
 

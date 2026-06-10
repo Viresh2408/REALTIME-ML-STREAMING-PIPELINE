@@ -26,6 +26,7 @@ from fastapi.testclient import TestClient
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def admin_headers() -> dict[str, str]:
     """Bearer token with ADMIN role for privileged endpoints."""
@@ -47,6 +48,7 @@ def viewer_headers() -> dict[str, str]:
 
 
 # ── Test class ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.integration
 @pytest.mark.testcontainers
@@ -110,9 +112,7 @@ class TestEventPipeline:
 
         # NFR-04 soft assertion (log only — load test enforces the hard SLA)
         if latency_ms > 500:
-            pytest.fail(
-                f"Ingestion latency {latency_ms:.1f}ms exceeded 500ms P95 target (NFR-04)"
-            )
+            pytest.fail(f"Ingestion latency {latency_ms:.1f}ms exceeded 500ms P95 target (NFR-04)")
 
     # ─────────────────────────────────────────────────────────────────────────
     # T-049-B: High-score event → alert created
@@ -160,16 +160,12 @@ class TestEventPipeline:
             params={"severity": "CRITICAL", "limit": 50},
             headers=admin_headers,
         )
-        assert alerts_resp.status_code == 200, (
-            f"GET /api/v1/alerts failed: {alerts_resp.text}"
-        )
+        assert alerts_resp.status_code == 200, f"GET /api/v1/alerts failed: {alerts_resp.text}"
 
         alerts = alerts_resp.json()
         assert isinstance(alerts, list), "Expected list of alerts"
         # At least one CRITICAL alert must exist (may include earlier test runs)
-        assert len(alerts) >= 1, (
-            "No CRITICAL alerts found after injecting score=0.98 event"
-        )
+        assert len(alerts) >= 1, "No CRITICAL alerts found after injecting score=0.98 event"
 
     # ─────────────────────────────────────────────────────────────────────────
     # T-049-C: WebSocket stream → event delivery
@@ -219,9 +215,7 @@ class TestEventPipeline:
         except Exception as exc:
             # WebSocket transport can fail in headless CI environments
             # where ASGI lifespan is not fully supported by the sync TestClient.
-            pytest.skip(
-                f"WebSocket transport not available in this test context: {exc}"
-            )
+            pytest.skip(f"WebSocket transport not available in this test context: {exc}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # T-049-D: Label feedback loop → label persisted in DB

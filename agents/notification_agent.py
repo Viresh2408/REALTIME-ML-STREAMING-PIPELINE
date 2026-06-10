@@ -47,15 +47,11 @@ class NotificationAgent:
         self.sendgrid_key = os.getenv("SENDGRID_API_KEY", "")
         self.email_to = os.getenv("ALERT_EMAIL_TO") or os.getenv("ALERT_EMAIL_RECIPIENTS", "")
         self.has_email = bool(
-            self.sendgrid_key
-            and self.email_to
-            and "placeholder" not in self.sendgrid_key.lower()
+            self.sendgrid_key and self.email_to and "placeholder" not in self.sendgrid_key.lower()
         )
         if self.has_email:
             emails = [addr.strip() for addr in self.email_to.split(",") if addr.strip()]
-            self.email_notifier = EmailNotifier(
-                api_key=self.sendgrid_key, to_addresses=emails
-            )
+            self.email_notifier = EmailNotifier(api_key=self.sendgrid_key, to_addresses=emails)
 
         # PagerDuty Configuration
         self.pd_key = os.getenv("PAGERDUTY_ROUTING_KEY") or os.getenv(

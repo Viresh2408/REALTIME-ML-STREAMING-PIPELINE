@@ -41,19 +41,19 @@ class TestTrainPipeline:
 
     @patch("ml.train.os.path.exists")
     @patch("ml.train.pd.read_csv")
-    def test_train_loads_dataset_from_csv(
-        self, mock_read_csv, mock_exists
-    ):
+    def test_train_loads_dataset_from_csv(self, mock_read_csv, mock_exists):
         """Test that training pipeline loads dataset from CSV."""
         # Setup mocks
         mock_exists.return_value = True
 
         # Create mock dataset
-        mock_df = pd.DataFrame({
-            "feature1": [0.1, 0.2, 0.3, 0.4, 0.5],
-            "feature2": [0.5, 0.4, 0.3, 0.2, 0.1],
-            " Label": ["BENIGN", "BENIGN", "ATTACK", "BENIGN", "ATTACK"],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": [0.1, 0.2, 0.3, 0.4, 0.5],
+                "feature2": [0.5, 0.4, 0.3, 0.2, 0.1],
+                " Label": ["BENIGN", "BENIGN", "ATTACK", "BENIGN", "ATTACK"],
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         # Test loading
@@ -66,17 +66,17 @@ class TestTrainPipeline:
     @patch("ml.train.os.path.exists")
     @patch("ml.train.pd.read_csv")
     @patch("ml.train.FeaturePipeline")
-    def test_train_applies_feature_pipeline(
-        self, mock_pipeline_cls, mock_read_csv, mock_exists
-    ):
+    def test_train_applies_feature_pipeline(self, mock_pipeline_cls, mock_read_csv, mock_exists):
         """Test that training applies feature preprocessing pipeline."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(100),
-            "feature2": np.random.rand(100),
-            " Label": np.random.choice(["BENIGN", "ATTACK"], 100),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(100),
+                "feature2": np.random.rand(100),
+                " Label": np.random.choice(["BENIGN", "ATTACK"], 100),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -104,11 +104,13 @@ class TestTrainPipeline:
         """Test that training fits IsolationForest model."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(100),
-            "feature2": np.random.rand(100),
-            " Label": np.random.choice([0, 1], 100),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(100),
+                "feature2": np.random.rand(100),
+                " Label": np.random.choice([0, 1], 100),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -149,11 +151,13 @@ class TestTrainPipeline:
         """Test that training logs metrics to MLflow."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(50),
-            "feature2": np.random.rand(50),
-            " Label": np.random.choice([0, 1], 50),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(50),
+                "feature2": np.random.rand(50),
+                " Label": np.random.choice([0, 1], 50),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -163,11 +167,13 @@ class TestTrainPipeline:
 
         mock_detector = MagicMock()
         mock_detector.train = MagicMock()
-        mock_detector.evaluate = MagicMock(return_value={
-            "precision": 0.95,
-            "recall": 0.92,
-            "f1": 0.93,
-        })
+        mock_detector.evaluate = MagicMock(
+            return_value={
+                "precision": 0.95,
+                "recall": 0.92,
+                "f1": 0.93,
+            }
+        )
         mock_detector_cls.return_value = mock_detector
 
         # Simulate MLflow logging
@@ -202,11 +208,13 @@ class TestTrainPipeline:
         """Test that training saves model to MinIO."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(50),
-            "feature2": np.random.rand(50),
-            " Label": np.random.choice([0, 1], 50),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(50),
+                "feature2": np.random.rand(50),
+                " Label": np.random.choice([0, 1], 50),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -248,11 +256,13 @@ class TestTrainPipeline:
         """Test that training saves pipeline to MinIO."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(50),
-            "feature2": np.random.rand(50),
-            " Label": np.random.choice([0, 1], 50),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(50),
+                "feature2": np.random.rand(50),
+                " Label": np.random.choice([0, 1], 50),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -293,11 +303,13 @@ class TestTrainPipeline:
         """Test that training generates proper version string."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(50),
-            "feature2": np.random.rand(50),
-            " Label": np.random.choice([0, 1], 50),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(50),
+                "feature2": np.random.rand(50),
+                " Label": np.random.choice([0, 1], 50),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -318,6 +330,7 @@ class TestTrainPipeline:
 
         # Verify format
         import re
+
         pattern = r"^\d{8}_\d{6}$"
         assert re.match(pattern, version)
 
@@ -339,11 +352,13 @@ class TestTrainPipeline:
         """Test that training configures MLflow experiment."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(50),
-            "feature2": np.random.rand(50),
-            " Label": np.random.choice([0, 1], 50),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(50),
+                "feature2": np.random.rand(50),
+                " Label": np.random.choice([0, 1], 50),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         mock_pipeline = MagicMock()
@@ -364,17 +379,17 @@ class TestTrainPipeline:
 
     @patch("ml.train.os.path.exists")
     @patch("ml.train.pd.read_csv")
-    def test_train_handles_missing_label_column(
-        self, mock_read_csv, mock_exists
-    ):
+    def test_train_handles_missing_label_column(self, mock_read_csv, mock_exists):
         """Test training handles missing label column gracefully."""
         mock_exists.return_value = True
 
         # DataFrame without label column
-        mock_df = pd.DataFrame({
-            "feature1": np.random.rand(50),
-            "feature2": np.random.rand(50),
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": np.random.rand(50),
+                "feature2": np.random.rand(50),
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         df = pd.read_csv("dummy.csv")
@@ -389,22 +404,24 @@ class TestTrainPipeline:
 
     @patch("ml.train.os.path.exists")
     @patch("ml.train.pd.read_csv")
-    def test_train_converts_benign_labels_to_binary(
-        self, mock_read_csv, mock_exists
-    ):
+    def test_train_converts_benign_labels_to_binary(self, mock_read_csv, mock_exists):
         """Test that training converts BENIGN/ATTACK to binary labels."""
         mock_exists.return_value = True
 
-        mock_df = pd.DataFrame({
-            "feature1": [0.1, 0.2, 0.3, 0.4],
-            "feature2": [0.5, 0.4, 0.3, 0.2],
-            " Label": ["BENIGN", "BENIGN", "ATTACK", "BENIGN"],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "feature1": [0.1, 0.2, 0.3, 0.4],
+                "feature2": [0.5, 0.4, 0.3, 0.2],
+                " Label": ["BENIGN", "BENIGN", "ATTACK", "BENIGN"],
+            }
+        )
         mock_read_csv.return_value = mock_df
 
         df = pd.read_csv("dummy.csv")
         label_col = next((col for col in df.columns if "label" in col.lower()), None)
 
         if label_col:
-            df["Label"] = (df[label_col].astype(str).str.strip().str.upper() != "BENIGN").astype(int)
+            df["Label"] = (df[label_col].astype(str).str.strip().str.upper() != "BENIGN").astype(
+                int
+            )
             assert list(df["Label"]) == [0, 0, 1, 0]

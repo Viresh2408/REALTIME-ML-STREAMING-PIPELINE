@@ -26,8 +26,10 @@ from jose import jwt  # type: ignore[import]
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 
+
 def _get_settings():
     from app.core.config import settings  # type: ignore[import]
+
     return settings
 
 
@@ -44,6 +46,7 @@ async def auth_client() -> AsyncGenerator[AsyncClient, None]:
     """
     try:
         import fakeredis.aioredis as fake_aio
+
         _redis = fake_aio.FakeRedis(decode_responses=True)
     except ImportError:
         _redis = AsyncMock()
@@ -65,15 +68,17 @@ async def auth_client() -> AsyncGenerator[AsyncClient, None]:
     ):
         redis_pool._client = _redis
         try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
                 yield client, _redis
         finally:
             KafkaProducerSingleton._producer = None
             redis_pool._client = None
 
 
-
 # ── Helper: perform a login and return token response JSON ────────────────────
+
 
 async def _login(client: AsyncClient, username: str, password: str) -> dict:
     response = await client.post(
@@ -87,6 +92,7 @@ async def _login(client: AsyncClient, username: str, password: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. test_login_returns_access_and_refresh_tokens
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_login_returns_access_and_refresh_tokens():
@@ -105,7 +111,9 @@ async def test_login_returns_access_and_refresh_tokens():
     assert data.get("token_type", "bearer").lower() == "bearer"
     # Decoded access token must carry correct role
     settings = _get_settings()
-    payload = jwt.decode(data["access_token"], settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    payload = jwt.decode(
+        data["access_token"], settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
     assert payload["role"] == "admin"
     assert payload["type"] == "access"
 
@@ -121,7 +129,9 @@ async def test_login_returns_analyst_role():
     assert response.status_code == 200
     data = response.json()
     settings = _get_settings()
-    payload = jwt.decode(data["access_token"], settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    payload = jwt.decode(
+        data["access_token"], settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
     assert payload["role"] == "analyst"
 
 
@@ -141,6 +151,7 @@ async def test_login_returns_viewer_role():
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. test_login_wrong_password_returns_401
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_login_wrong_password_returns_401():
@@ -170,6 +181,7 @@ async def test_login_unknown_user_returns_401():
 # 3. test_refresh_token_returns_new_access_token
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_refresh_token_returns_new_access_token():
     """
@@ -196,7 +208,9 @@ async def test_refresh_token_returns_new_access_token():
 
     # New access token must be valid
     settings = _get_settings()
-    payload = jwt.decode(new_data["access_token"], settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    payload = jwt.decode(
+        new_data["access_token"], settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
     assert payload["type"] == "access"
     assert payload["sub"] == "admin@example.com"
 
@@ -204,6 +218,7 @@ async def test_refresh_token_returns_new_access_token():
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. test_expired_token_returns_401
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_expired_token_returns_401():
@@ -240,6 +255,7 @@ async def test_expired_token_returns_401():
 # 5. test_revoke_token_invalidates_session
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_revoke_token_invalidates_session():
     """
@@ -261,7 +277,9 @@ async def test_revoke_token_invalidates_session():
 
         # The jti should now be in the fakeredis blacklist
         settings = _get_settings()
-        payload = jwt.decode(access_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(
+            access_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
         jti = payload["jti"]
         blacklisted = await redis.get(f"blacklist:{jti}")
         assert blacklisted is not None, "JTI must be in the Redis blacklist after revocation"
@@ -276,6 +294,7 @@ async def test_revoke_token_invalidates_session():
 # 6. test_admin_endpoint_blocked_for_viewer_role
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_endpoint_blocked_for_viewer_role():
     """
@@ -285,9 +304,7 @@ async def test_admin_endpoint_blocked_for_viewer_role():
     """
     from app.api.v1.auth import create_token  # type: ignore[import]
 
-    viewer_token = create_token(
-        "viewer@example.com", "viewer", "access", timedelta(hours=1)
-    )
+    viewer_token = create_token("viewer@example.com", "viewer", "access", timedelta(hours=1))
     event_id = uuid.uuid4()
 
     async with auth_client() as (client, _):
@@ -308,9 +325,7 @@ async def test_analyst_endpoint_blocked_for_viewer_on_alerts_acknowledge():
     """
     from app.api.v1.auth import create_token  # type: ignore[import]
 
-    viewer_token = create_token(
-        "viewer@example.com", "viewer", "access", timedelta(hours=1)
-    )
+    viewer_token = create_token("viewer@example.com", "viewer", "access", timedelta(hours=1))
     alert_id = uuid.uuid4()
 
     async with auth_client() as (client, _):

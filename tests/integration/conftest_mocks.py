@@ -39,11 +39,9 @@ if str(_BACKEND_DIR) not in sys.path:
 _CI_ENV: dict[str, str] = {
     "DATABASE_URL": "postgresql+asyncpg://test_user:test_pw@localhost:5432/test_db",
     "TIMESCALE_PASSWORD": "test_pw",
-    "JWT_SECRET_KEY": os.environ.get(
-        "JWT_SECRET_KEY", "ci-test-secret-key-minimum-32-chars-here"
-    ),
+    "JWT_SECRET_KEY": os.environ.get("JWT_SECRET_KEY", "ci-test-secret-key-minimum-32-chars-here"),
     "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", "sk-ant-test-key"),
-    "CORS_ORIGINS": '[\"http://localhost:3000\"]',
+    "CORS_ORIGINS": '["http://localhost:3000"]',
     "TESTING": "true",
     "REDIS_URL": "redis://localhost:6379/0",
     "KAFKA_BOOTSTRAP_SERVERS": "localhost:9092",
@@ -54,12 +52,15 @@ for _k, _v in _CI_ENV.items():
 
 # ── Lazy import of the FastAPI app (after env vars are set) ───────────────────
 
+
 def _import_app():
     from app.main import app  # type: ignore[import]
+
     return app
 
 
 # ── Helpers to build canonical ORM-like mock rows ─────────────────────────────
+
 
 def make_alert(
     *,
@@ -108,6 +109,7 @@ def make_alert_silence(
     row.reason = reason
     row.created_at = created_at or datetime.now(UTC)
     from datetime import timedelta
+
     row.expires_at = expires_at or (row.created_at + timedelta(minutes=duration_minutes))
     return row
 
@@ -156,8 +158,10 @@ def make_event_label(
 
 # ── Generic async DB session mock ─────────────────────────────────────────────
 
-def build_db_mock(scalar_result=None, scalars_all=None, fetchall=None, fetchone=None,
-                  mappings_one=None) -> AsyncMock:
+
+def build_db_mock(
+    scalar_result=None, scalars_all=None, fetchall=None, fetchone=None, mappings_one=None
+) -> AsyncMock:
     """
     Build an AsyncMock for an SQLAlchemy AsyncSession.
 
@@ -192,10 +196,12 @@ def build_db_mock(scalar_result=None, scalars_all=None, fetchall=None, fetchone=
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
 
+
 def get_access_token(role: str = "admin") -> str:
     """Create a real JWT for test usage, signed with the CI secret."""
     from datetime import timedelta
     from app.api.v1.auth import create_token  # type: ignore[import]
+
     email_map = {
         "admin": "admin@example.com",
         "analyst": "analyst@example.com",
@@ -210,11 +216,13 @@ def auth_headers(role: str = "admin") -> dict[str, str]:
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture()
 def fake_redis():
     """In-memory fakeredis async client (no real Redis needed)."""
     try:
         import fakeredis.aioredis as fake_aio
+
         return fake_aio.FakeRedis(decode_responses=True)
     except ImportError:
         # fakeredis not installed — use an AsyncMock that behaves like redis

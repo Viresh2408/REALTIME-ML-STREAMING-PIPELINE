@@ -28,6 +28,7 @@ from tests.integration.conftest_mocks import auth_headers, build_db_mock, make_a
 
 # ── Shared async test-client helper ──────────────────────────────────────────
 
+
 @asynccontextmanager
 async def anomalies_client(
     db_session_mock: AsyncMock | None = None,
@@ -35,6 +36,7 @@ async def anomalies_client(
     """Yield an HTTPX AsyncClient wired to the FastAPI app with mocked infra."""
     try:
         import fakeredis.aioredis as fake_aio
+
         _redis = fake_aio.FakeRedis(decode_responses=True)
     except ImportError:
         _redis = AsyncMock()
@@ -69,6 +71,7 @@ async def anomalies_client(
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. test_list_anomalies_returns_paginated_results
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_anomalies_returns_paginated_results():
@@ -110,6 +113,7 @@ async def test_list_anomalies_returns_paginated_results():
 # 2. test_list_anomalies_filters_by_min_score
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_anomalies_filters_by_min_score():
     """
@@ -139,6 +143,7 @@ async def test_list_anomalies_filters_by_min_score():
 # 3. test_list_anomalies_filters_by_source_id
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_anomalies_filters_by_source_id():
     """
@@ -166,6 +171,7 @@ async def test_list_anomalies_filters_by_source_id():
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. test_get_anomaly_stats_returns_rate_and_count
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_anomaly_stats_returns_rate_and_count():
@@ -209,6 +215,7 @@ async def test_get_anomaly_stats_returns_rate_and_count():
 # 5. test_get_anomaly_heatmap_returns_matrix
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_anomaly_heatmap_returns_matrix():
     """
@@ -251,6 +258,7 @@ async def test_get_anomaly_heatmap_returns_matrix():
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. test_anomalies_requires_auth
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_anomalies_requires_auth():

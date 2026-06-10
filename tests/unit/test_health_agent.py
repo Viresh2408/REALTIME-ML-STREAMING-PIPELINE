@@ -38,9 +38,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_all_healthy_returns_healthy_status(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_all_healthy_returns_healthy_status(self, mock_pg_connect, mock_admin_cls):
         """Test that all services healthy returns OK status."""
         from agents.health_agent import HealthAgent
 
@@ -65,9 +63,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_kafka_unreachable_returns_degraded(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_kafka_unreachable_returns_degraded(self, mock_pg_connect, mock_admin_cls):
         """Test that unreachable Kafka returns degraded status."""
         from agents.health_agent import HealthAgent
 
@@ -92,9 +88,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_timescaledb_unreachable_returns_degraded(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_timescaledb_unreachable_returns_degraded(self, mock_pg_connect, mock_admin_cls):
         """Test that unreachable TimescaleDB returns degraded status."""
         from agents.health_agent import HealthAgent
 
@@ -116,9 +110,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_both_services_down_triggers_critical(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_both_services_down_triggers_critical(self, mock_pg_connect, mock_admin_cls):
         """Test that both services down triggers CRITICAL alert."""
         from agents.health_agent import HealthAgent
 
@@ -190,9 +182,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_health_check_interval_is_30_seconds(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_health_check_interval_is_30_seconds(self, mock_pg_connect, mock_admin_cls):
         """Test that health checks run every 30 seconds."""
         from agents.health_agent import HealthAgent
 
@@ -212,9 +202,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_kafka_check_verifies_cluster_metadata(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_kafka_check_verifies_cluster_metadata(self, mock_pg_connect, mock_admin_cls):
         """Test that Kafka check retrieves and validates cluster metadata."""
         from agents.health_agent import HealthAgent
 
@@ -239,9 +227,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_postgres_check_executes_test_query(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_postgres_check_executes_test_query(self, mock_pg_connect, mock_admin_cls):
         """Test that Postgres check executes SELECT 1 query."""
         from agents.health_agent import HealthAgent
 
@@ -264,9 +250,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_admin_client_timeout_configuration(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_admin_client_timeout_configuration(self, mock_pg_connect, mock_admin_cls):
         """Test that AdminClient is configured with 5s timeout."""
         from agents.health_agent import HealthAgent
 
@@ -288,9 +272,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_postgres_connection_timeout(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_postgres_connection_timeout(self, mock_pg_connect, mock_admin_cls):
         """Test that Postgres connection uses 5s timeout."""
         from agents.health_agent import HealthAgent
 
@@ -312,9 +294,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_health_check_error_handling(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_health_check_error_handling(self, mock_pg_connect, mock_admin_cls):
         """Test that health checks handle errors gracefully."""
         from agents.health_agent import HealthAgent
 
@@ -336,9 +316,7 @@ class TestHealthAgent:
 
     @patch("agents.health_agent.AdminClient")
     @patch("agents.health_agent.asyncpg.connect")
-    async def test_running_flag_stops_agent(
-        self, mock_pg_connect, mock_admin_cls
-    ):
+    async def test_running_flag_stops_agent(self, mock_pg_connect, mock_admin_cls):
         """Test that running flag can stop the agent."""
         from agents.health_agent import HealthAgent
 

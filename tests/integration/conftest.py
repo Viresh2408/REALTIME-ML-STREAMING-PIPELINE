@@ -49,6 +49,7 @@ for key, value in _CI_ENV.items():
 import pytest
 from collections.abc import Generator
 
+
 @pytest.fixture(scope="module")
 def run_background_workers(
     timescaledb_container,
@@ -76,7 +77,7 @@ def run_background_workers(
     def run_ml_worker():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         async def run_and_wait():
             await asyncio.sleep(1.0)
             for attempt in range(5):
@@ -90,7 +91,9 @@ def run_background_workers(
                     await task
                     break
                 except Exception as e:
-                    logger.warning(f"MLInferenceWorker run failed, retrying in 2s (attempt {attempt+1}/5): {e}")
+                    logger.warning(
+                        f"MLInferenceWorker run failed, retrying in 2s (attempt {attempt + 1}/5): {e}"
+                    )
                     if stop_event.is_set():
                         break
                     await asyncio.sleep(2.0)
@@ -103,7 +106,7 @@ def run_background_workers(
     def run_writer():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         async def run_and_wait():
             await asyncio.sleep(1.0)
             for attempt in range(5):
@@ -117,7 +120,9 @@ def run_background_workers(
                     await task
                     break
                 except Exception as e:
-                    logger.warning(f"TimescaleDBWriterWorker run failed, retrying in 2s (attempt {attempt+1}/5): {e}")
+                    logger.warning(
+                        f"TimescaleDBWriterWorker run failed, retrying in 2s (attempt {attempt + 1}/5): {e}"
+                    )
                     if stop_event.is_set():
                         break
                     await asyncio.sleep(2.0)
@@ -130,7 +135,7 @@ def run_background_workers(
     def run_agent():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         async def run_and_wait():
             await asyncio.sleep(1.0)
             for attempt in range(5):
@@ -144,7 +149,9 @@ def run_background_workers(
                     await task
                     break
                 except Exception as e:
-                    logger.warning(f"AlertAgent run failed, retrying in 2s (attempt {attempt+1}/5): {e}")
+                    logger.warning(
+                        f"AlertAgent run failed, retrying in 2s (attempt {attempt + 1}/5): {e}"
+                    )
                     if stop_event.is_set():
                         break
                     await asyncio.sleep(2.0)
@@ -172,4 +179,3 @@ def run_background_workers(
     t_writer.join(timeout=5)
     t_agent.join(timeout=5)
     logger.info("All background integration test workers stopped.")
-

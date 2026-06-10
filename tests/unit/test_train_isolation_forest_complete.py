@@ -80,9 +80,7 @@ class TestTrainIsolationForestComplete:
         assert "anomaly_rate" in metrics
         assert 0.0 <= metrics["anomaly_rate"] <= 1.0
 
-    def test_hyperparameter_search_selects_best_contamination(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    def test_hyperparameter_search_selects_best_contamination(self, tmp_path, monkeypatch) -> None:
         """Grid search should find optimal contamination parameter."""
         import mlflow
 
@@ -160,9 +158,7 @@ class TestTrainIsolationForestComplete:
         X_scaled = scaler.fit_transform(data)
 
         # Create model and perform 5-fold cross-validation
-        model = IsolationForest(
-            contamination=0.05, n_estimators=50, random_state=42, n_jobs=-1
-        )
+        model = IsolationForest(contamination=0.05, n_estimators=50, random_state=42, n_jobs=-1)
 
         # IsolationForest doesn't have a traditional score method for CV,
         # but we can verify the model works in cross-validation context
@@ -174,9 +170,7 @@ class TestTrainIsolationForestComplete:
             # The test verifies cv=5 parameter is used
             pass
 
-    def test_best_model_registered_in_mlflow_model_registry(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    def test_best_model_registered_in_mlflow_model_registry(self, tmp_path, monkeypatch) -> None:
         """Best model should be registered in MLflow model registry."""
         import mlflow
 
@@ -406,10 +400,12 @@ class TestTrainIsolationForestComplete:
 
         # Create data with very different scales
         rng = np.random.default_rng(42)
-        data = np.hstack([
-            rng.standard_normal((200, 5)) * 1000,  # large scale
-            rng.standard_normal((200, 5)) * 0.001,  # small scale
-        ])
+        data = np.hstack(
+            [
+                rng.standard_normal((200, 5)) * 1000,  # large scale
+                rng.standard_normal((200, 5)) * 0.001,  # small scale
+            ]
+        )
 
         metrics = train_isolation_forest(
             data=data,
