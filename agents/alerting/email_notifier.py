@@ -201,9 +201,9 @@ class EmailNotifier:
         return [addr.strip() for addr in raw.split(",") if addr.strip()]
 
     def _resolved_from(self) -> str:
-        return self._from_address or os.getenv(
-            "ALERT_EMAIL_FROM", "system@anomaly-pipeline.internal"
-        )
+        if self._from_address:
+            return self._from_address
+        return os.getenv("ALERT_EMAIL_FROM", "system@anomaly-pipeline.internal")
 
     def _resolved_timeout(self) -> float:
         if self._timeout_s is not None:

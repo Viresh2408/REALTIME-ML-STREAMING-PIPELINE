@@ -50,7 +50,8 @@ class NotificationAgent:
             self.sendgrid_key and self.email_to and "placeholder" not in self.sendgrid_key.lower()
         )
         if self.has_email:
-            emails = [addr.strip() for addr in self.email_to.split(",") if addr.strip()]
+            email_to: str = self.email_to  # type: ignore[assignment]  # guarded by has_email
+            emails = [addr.strip() for addr in email_to.split(",") if addr.strip()]
             self.email_notifier = EmailNotifier(api_key=self.sendgrid_key, to_addresses=emails)
 
         # PagerDuty Configuration

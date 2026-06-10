@@ -241,6 +241,10 @@ module = [
 ]
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = ["redis", "redis.*"]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 source = ["backend", "agents", "ml"]
 omit = ["*/tests/*", "*/migrations/*", "*/__init__.py"]

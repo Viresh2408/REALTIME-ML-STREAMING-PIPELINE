@@ -10,7 +10,7 @@ and consumed by Slack, email, and PagerDuty notifiers.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
@@ -34,7 +34,7 @@ class AlertEvent(BaseModel):
         description="Number of HIGH+ alerts in the last 60 s for this source_id.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.UTC),
+        default_factory=lambda: datetime.now(timezone.utc),
         description="UTC timestamp when this alert was created.",
     )
     dashboard_url: str | None = Field(

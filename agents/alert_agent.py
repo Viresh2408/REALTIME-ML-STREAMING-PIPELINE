@@ -3,7 +3,7 @@ import json
 import os
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 import asyncpg
 import redis
@@ -123,7 +123,7 @@ class AlertAgent:
                         score=score,
                         severity=severity,
                         burst_count=burst_count,
-                        created_at=datetime.now(datetime.UTC),
+                        created_at=datetime.now(timezone.utc),
                     )
 
                     # 5. Write to TimescaleDB
